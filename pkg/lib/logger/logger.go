@@ -2,19 +2,25 @@ package logger
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/rs/xid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/syunkitada/goapp2/pkg_infra/lib/infra_logger"
+	"github.com/syunkitada/goapp2/pkg_infra/lib/infra_os"
 )
+
+var disableExit bool
 
 var logger *zap.Logger
 
 type Config struct {
 	OutputPaths []string
 	Level       string
+	Encoding    string
+	DisableExit bool
 }
 
 const (
@@ -23,9 +29,8 @@ const (
 	LevelWarn  = "Warn"
 )
 
-func Init(conf *Config) {
-	var level zapcore.Level
-	switch conf.Level {
+func NewZapCoreLevel(levelStr string) (level zapcore.Level) {
+	switch levelStr {
 	case "Debug":
 		level = zap.DebugLevel
 	case "Info":
@@ -35,10 +40,18 @@ func Init(conf *Config) {
 	default:
 		level = zap.InfoLevel
 	}
+	return
+}
+
+func Init(conf *Config) {
+	if conf.Encoding == "" {
+		conf.Encoding = "json"
+	}
+	disableExit = conf.DisableExit
 	zapConf := zap.Config{
-		Level:       zap.NewAtomicLevelAt(level),
+		Level:       zap.NewAtomicLevelAt(NewZapCoreLevel(conf.Level)),
 		Development: false,
-		Encoding:    "json",
+		Encoding:    conf.Encoding,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
@@ -60,9 +73,8 @@ func Init(conf *Config) {
 	logger, err = zapConf.Build()
 	if err != nil {
 		fmt.Println("Failed to initialize logger")
-		os.Exit(1)
+		infra_os.Exit(disableExit, 1)
 	}
-
 }
 
 type TraceContext struct {
@@ -103,7 +115,7 @@ func Error(tctx *TraceContext, msg string, fields ...zap.Field) {
 }
 
 func Fatal(tctx *TraceContext, msg string, fields ...zap.Field) {
-	logger.Fatal(msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
+	infra_logger.Fatal(disableExit, logger, msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
 }
 
 func Sync() {
