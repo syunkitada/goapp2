@@ -45,10 +45,11 @@ type ProcessStat struct {
 	VoluntaryCtxtSwitches    int
 	NonvoluntaryCtxtSwitches int
 
-	Utime  int
-	Stime  int
-	Gtime  int
-	Cgtime int
+	Utime     int
+	Stime     int
+	Gtime     int
+	Cgtime    int
+	StartTime int
 
 	Syscr      int
 	Syscw      int
@@ -126,9 +127,11 @@ func GetProcessFromPid(pid int) (process *Process, err error) {
 	return
 }
 
+var procDir string = "/proc/"
+
 func GetProcesses() (processes []Process, err error) {
 	var procDirFile *os.File
-	if procDirFile, err = os.Open(ProcDir); err != nil {
+	if procDirFile, err = os.Open(procDir); err != nil {
 		return
 	}
 
@@ -145,6 +148,8 @@ func GetProcesses() (processes []Process, err error) {
 		}
 	}
 
+	fmt.Println("len", len(procFileInfos))
+
 	index := 0
 	pidIndexMap := map[int]int{}
 	for _, procFileInfo := range procFileInfos {
@@ -158,6 +163,7 @@ func GetProcesses() (processes []Process, err error) {
 		}
 
 		if process == nil {
+			// fs, bus, irq, sys, tty, acpi, scsi, asound, driver, sysvipc, pressure はスキップされる
 			continue
 		}
 
@@ -188,7 +194,18 @@ func getProcess(pidStr string) (process *Process, err error) {
 		return
 	}
 
-	procDir := ProcDir + pidStr + "/"
+	procDir := procDir + pidStr + "/"
+
+	// ----------------------------------------------------------------------------------------------------
+	// Parse cmdline
+	cmdlinePath := procDir + "/cmdline"
+	if tmpBytes, err = ioutil.ReadFile(cmdlinePath); err != nil {
+		return
+	}
+	cmds := strings.Split(string(tmpBytes), string(byte(0)))
+	if cmds[len(cmds)-1] == "" {
+		cmds = cmds[0 : len(cmds)-1]
+	}
 
 	// ----------------------------------------------------------------------------------------------------
 	// Parse status
@@ -210,16 +227,6 @@ func getProcess(pidStr string) (process *Process, err error) {
 
 	// Name:   kworker/6:2-events
 	name := statusMap["Name:"][0]
-
-	// MEMO kernel thread は一部フィールドが存在しないので無視する
-	if len(statusMap) < 40 {
-		// TODO kernel threadの扱いをどうするか
-		// MEMO kernel threadの判定が雑なのを何とかしたほうがよいか？
-		// MEMO kernel threadは行数が37しかない
-		// MEMO nfsdもこれに当てはまる
-		fmt.Println("DEBUG kernel thread", pid, name)
-		return
-	}
 
 	// Umask:  0000
 	// State:  I (idle)
@@ -258,12 +265,18 @@ func getProcess(pidStr string) (process *Process, err error) {
 	// VmSize:  2461756 kB
 
 	// VmSize
-	vmSizeKb, _ := strconv.Atoi(statusMap["VmSize:"][0])
+	var vmSizeKb int
+	if value, ok := statusMap["VmSize:"]; ok {
+		vmSizeKb, _ = strconv.Atoi(value[0])
+	}
 	// VmLck:         0 kB
 	// VmPin:         0 kB
 	// VmHWM:     31584 kB
 	// VmRSS:     28784 kB
-	vmRssKb, _ := strconv.Atoi(statusMap["VmRSS:"][0])
+	var vmRssKb int
+	if value, ok := statusMap["VmRSS:"]; ok {
+		vmRssKb, _ = strconv.Atoi(value[0])
+	}
 	// RssAnon:           16256 kB
 	// RssFile:           12528 kB
 	// RssShmem:              0 kB
@@ -274,7 +287,10 @@ func getProcess(pidStr string) (process *Process, err error) {
 	// VmPTE:       572 kB
 	// VmSwap:        0 kB
 	// HugetlbPages:    2097152 kB
-	hugetlbPages, _ := strconv.Atoi(statusMap["HugetlbPages:"][0])
+	var hugetlbPages int
+	if value, ok := statusMap["HugetlbPages:"]; ok {
+		hugetlbPages, _ = strconv.Atoi(value[0])
+	}
 	// CoreDumping:    0
 	// THP_enabled:    1
 	// Threads:        4
@@ -306,7 +322,7 @@ func getProcess(pidStr string) (process *Process, err error) {
 	// Parse /proc/[pid]/schedstat
 	// 2554841551 177487694 35200
 	// [time spent on the cpu] [time spent waiting on a runqueue] [timeslices run on this cpu]
-	if tmpFile, tmpErr = os.Open(procDir + "schedstat"); tmpErr != nil {
+	if tmpFile, err = os.Open(procDir + "schedstat"); err != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)
@@ -328,12 +344,11 @@ func getProcess(pidStr string) (process *Process, err error) {
 	// ----------------------------------------------------------------------------------------------------
 	// $ cat /proc/24120/stat
 	// 24120 (qemu-system-x86) S 24119 24120 24119 0 -1 138412416 23189 0 0 0 2227 753 0 0 20 0 6 0 251962 4969209856 7743 18446744073709551615 1 1 0 0 0 0 268444224 4096 16963 0 0 0 17 9 0 0 0 2041 0 0 0 0 0 0 0 0 0
-	if tmpFile, tmpErr = os.Open(procDir + "stat"); tmpErr != nil {
+	if tmpFile, err = os.Open(procDir + "stat"); err != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)
-	tmpBytes, _, tmpErr = tmpReader.ReadLine()
-	if tmpErr != nil {
+	if tmpBytes, _, err = tmpReader.ReadLine(); err != nil {
 		return
 	}
 	tmpTexts = strings.Split(string(tmpBytes), " ")
@@ -341,7 +356,7 @@ func getProcess(pidStr string) (process *Process, err error) {
 	stime, _ := strconv.Atoi(tmpTexts[14])
 	gtime, _ := strconv.Atoi(tmpTexts[42])
 	cgtime, _ := strconv.Atoi(tmpTexts[43])
-	// startTime, _ := strconv.Atoi(tmpTexts[21])
+	startTime, _ := strconv.Atoi(tmpTexts[21])
 
 	// ----------------------------------------------------------------------------------------------------
 	// $ cat /proc/24120/io
@@ -352,7 +367,8 @@ func getProcess(pidStr string) (process *Process, err error) {
 	// read_bytes: 163528704
 	// write_bytes: 15466496
 	// cancelled_write_bytes: 0
-	if tmpFile, tmpErr = os.Open(procDir + "io"); tmpErr != nil {
+	// root権限がないと見れない
+	if tmpFile, err = os.Open(procDir + "io"); err != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)
@@ -378,10 +394,11 @@ func getProcess(pidStr string) (process *Process, err error) {
 		VoluntaryCtxtSwitches:    voluntaryCtxtSwitches,
 		NonvoluntaryCtxtSwitches: nonvoluntaryCtxtSwitches,
 
-		Utime:  utime,
-		Stime:  stime,
-		Gtime:  gtime,
-		Cgtime: cgtime,
+		Utime:     utime,
+		Stime:     stime,
+		Gtime:     gtime,
+		Cgtime:    cgtime,
+		StartTime: startTime,
 
 		Syscr:      syscr,
 		Syscw:      syscw,
@@ -391,6 +408,7 @@ func getProcess(pidStr string) (process *Process, err error) {
 
 	process = &Process{
 		Name:  name,
+		Cmds:  cmds,
 		Pid:   pid,
 		Tgid:  tgid,
 		Ppid:  ppid,

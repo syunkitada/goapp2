@@ -30,3 +30,7 @@ func TestSplitActionDataName(t *testing.T) {
 		t.Errorf("got=%s, want=%s", gotData, wantData)
 	}
 }
+
+func TestSplitSpace(t *testing.T) {
+	// TODO
+}
