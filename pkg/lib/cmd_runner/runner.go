@@ -106,7 +106,7 @@ func (self *Runner) MustKillProcess(pid int) {
 		return
 	}
 	for i := 0; i < self.killLimit; i++ {
-		process, err := process_utils.GetProcess(pid)
+		process, err := process_utils.GetProcessFromPid(pid)
 		if err != nil {
 			log.Fatalf("Unexpected Error: %s", err.Error())
 		}
@@ -128,7 +128,7 @@ func (self *Runner) MustKillProcess(pid int) {
 		time.Sleep(self.killInterval)
 	}
 
-	process, err := process_utils.GetProcess(pid)
+	process, err := process_utils.GetProcessFromPid(pid)
 	if err != nil {
 		log.Fatalf("Unexpected Error: %s", err.Error())
 	}

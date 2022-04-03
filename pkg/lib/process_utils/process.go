@@ -148,8 +148,6 @@ func GetProcesses() (processes []Process, err error) {
 		}
 	}
 
-	fmt.Println("len", len(procFileInfos))
-
 	index := 0
 	pidIndexMap := map[int]int{}
 	for _, procFileInfo := range procFileInfos {
@@ -198,7 +196,7 @@ func getProcess(pidStr string) (process *Process, err error) {
 
 	// ----------------------------------------------------------------------------------------------------
 	// Parse cmdline
-	cmdlinePath := procDir + "/cmdline"
+	cmdlinePath := procDir + "cmdline"
 	if tmpBytes, err = ioutil.ReadFile(cmdlinePath); err != nil {
 		return
 	}
