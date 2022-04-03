@@ -121,7 +121,7 @@ func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Pro
 	// ----------------------------------------------------------------------------------------------------
 	// Parse cmdline
 	cmdlinePath := procDir + "cmdline"
-	if tmpBytes, err = ioutil.ReadFile(cmdlinePath); err != nil {
+	if tmpBytes, tmpErr = ioutil.ReadFile(cmdlinePath); tmpErr != nil {
 		return
 	}
 	cmds := strings.Split(string(tmpBytes), string(byte(0)))
@@ -131,7 +131,7 @@ func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Pro
 
 	// ----------------------------------------------------------------------------------------------------
 	// Parse status
-	if tmpFile, err = os.Open(procDir + "status"); err != nil {
+	if tmpFile, tmpErr = os.Open(procDir + "status"); tmpErr != nil {
 		return
 	}
 	defer tmpFile.Close()
@@ -256,11 +256,11 @@ func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Pro
 	// Parse /proc/[pid]/schedstat
 	// 2554841551 177487694 35200
 	// [time spent on the cpu] [time spent waiting on a runqueue] [timeslices run on this cpu]
-	if tmpFile, err = os.Open(procDir + "schedstat"); err != nil {
+	if tmpFile, tmpErr = os.Open(procDir + "schedstat"); tmpErr != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)
-	if tmpBytes, _, err = tmpReader.ReadLine(); err != nil {
+	if tmpBytes, _, tmpErr = tmpReader.ReadLine(); tmpErr != nil {
 		return
 	}
 	tmpTexts = strings.Split(string(tmpBytes), " ")
@@ -278,11 +278,11 @@ func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Pro
 	// ----------------------------------------------------------------------------------------------------
 	// $ cat /proc/24120/stat
 	// 24120 (qemu-system-x86) S 24119 24120 24119 0 -1 138412416 23189 0 0 0 2227 753 0 0 20 0 6 0 251962 4969209856 7743 18446744073709551615 1 1 0 0 0 0 268444224 4096 16963 0 0 0 17 9 0 0 0 2041 0 0 0 0 0 0 0 0 0
-	if tmpFile, err = os.Open(procDir + "stat"); err != nil {
+	if tmpFile, tmpErr = os.Open(procDir + "stat"); tmpErr != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)
-	if tmpBytes, _, err = tmpReader.ReadLine(); err != nil {
+	if tmpBytes, _, tmpErr = tmpReader.ReadLine(); tmpErr != nil {
 		return
 	}
 	tmpTexts = strings.Split(string(tmpBytes), " ")
@@ -302,7 +302,7 @@ func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Pro
 	// write_bytes: 15466496
 	// cancelled_write_bytes: 0
 	// root権限がないと見れない
-	if tmpFile, err = os.Open(procDir + "io"); err != nil {
+	if tmpFile, tmpErr = os.Open(procDir + "io"); tmpErr != nil {
 		return
 	}
 	tmpReader = bufio.NewReader(tmpFile)

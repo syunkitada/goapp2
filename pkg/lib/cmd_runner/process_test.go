@@ -11,11 +11,11 @@ import (
 func TestGetProcess(t *testing.T) {
 	a := assert.New(t)
 
-	command1 := exec.Command("sleep", "10")
+	command1 := exec.Command("sleep", "2")
 	command1.Start()
 	pid1 := command1.Process.Pid
 
-	command2 := exec.Command("sleep", "12")
+	command2 := exec.Command("sleep", "3")
 	command2.Start()
 	pid2 := command2.Process.Pid
 
@@ -26,7 +26,7 @@ func TestGetProcess(t *testing.T) {
 		a.NotNil(process)
 		expected := Process{
 			Pid:      pid1,
-			Cmds:     []string{"sleep", "10"},
+			Cmds:     []string{"sleep", "2"},
 			Children: []Process{},
 		}
 		a.Equal(expected, *process)
@@ -36,8 +36,8 @@ func TestGetProcess(t *testing.T) {
 		selfProcess, err := GetProcess(selfPid)
 		a.NoError(err)
 		expectedChildren := []Process{
-			Process{Pid: pid1, Cmds: []string{"sleep", "10"}, Children: []Process{}},
-			Process{Pid: pid2, Cmds: []string{"sleep", "12"}, Children: []Process{}},
+			Process{Pid: pid1, Cmds: []string{"sleep", "2"}, Children: []Process{}},
+			Process{Pid: pid2, Cmds: []string{"sleep", "3"}, Children: []Process{}},
 		}
 		a.ElementsMatch(expectedChildren, selfProcess.Children)
 	}

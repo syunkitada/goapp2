@@ -173,38 +173,39 @@ func TestGetProcesses(t *testing.T) {
 	}
 
 	{
+		// schedstatのフォーマットが間違ってる
+		_, _, err := GetProcesses(wd+"/testdata/exception_invalid_schedstat/", true)
+		a.Error(err)
+	}
+
+	{
 		// cmdlineがない
 		_, _, err := GetProcesses(wd+"/testdata/exception_no_cmdline/", true)
-		a.Error(err)
+		a.NoError(err)
 	}
 
 	{
 		// statusがない
 		_, _, err := GetProcesses(wd+"/testdata/exception_no_status/", true)
-		a.Error(err)
+		a.NoError(err)
 	}
 
 	{
 		// schedstatがない
 		_, _, err := GetProcesses(wd+"/testdata/exception_no_schedstat/", true)
-		a.Error(err)
+		a.NoError(err)
 	}
 
 	{
 		// statがない
 		_, _, err := GetProcesses(wd+"/testdata/exception_no_stat/", true)
-		a.Error(err)
+		a.NoError(err)
 	}
 
 	{
 		// ioがない
 		_, _, err := GetProcesses(wd+"/testdata/exception_no_io/", true)
-		a.Error(err)
+		a.NoError(err)
 	}
 
-	{
-		// schedstatのフォーマットが間違ってる
-		_, _, err := GetProcesses(wd+"/testdata/exception_invalid_schedstat/", true)
-		a.Error(err)
-	}
 }
