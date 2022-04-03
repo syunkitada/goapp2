@@ -1,0 +1,55 @@
+Name:	process_utils.t
+Umask:	0022
+State:	S (sleeping)
+Tgid:	21607
+Ngid:	0
+Pid:	21607
+PPid:	21401
+TracerPid:	0
+Uid:	0	0	0	0
+Gid:	0	0	0	0
+FDSize:	64
+Groups:	0 
+NStgid:	21607
+NSpid:	21607
+NSpgid:	21401
+NSsid:	11160
+VmPeak:	 1447508 kB
+VmSize:	 1446744 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	   13716 kB
+VmRSS:	   13716 kB
+RssAnon:	    8052 kB
+RssFile:	    5664 kB
+RssShmem:	       0 kB
+VmData:	  509376 kB
+VmStk:	     132 kB
+VmExe:	    2896 kB
+VmLib:	    2220 kB
+VmPTE:	     284 kB
+VmSwap:	       0 kB
+HugetlbPages:	       0 kB
+CoreDumping:	0
+THP_enabled:	1
+Threads:	6
+SigQ:	0/62443
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000000000
+SigIgn:	0000000000000000
+SigCgt:	ffffffffffc1feff
+CapInh:	0000000000000000
+CapPrm:	0000003fffffffff
+CapEff:	0000003fffffffff
+CapBnd:	0000003fffffffff
+CapAmb:	0000000000000000
+NoNewPrivs:	0
+Seccomp:	0
+Speculation_Store_Bypass:	thread vulnerable
+Cpus_allowed:	ffff
+Cpus_allowed_list:	0-15
+Mems_allowed:	00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	5
+nonvoluntary_ctxt_switches:	2

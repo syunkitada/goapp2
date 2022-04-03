@@ -15,7 +15,7 @@ var psCmd = &cobra.Command{
 	Use:   "ps",
 	Short: "process",
 	Run: func(cmd *cobra.Command, args []string) {
-		processes, err := process_utils.GetProcesses()
+		processes, _, err := process_utils.GetProcesses("/")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}

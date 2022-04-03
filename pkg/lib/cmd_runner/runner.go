@@ -9,8 +9,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/syunkitada/goapp2/pkg/lib/process_utils"
 )
 
 const (
@@ -106,7 +104,7 @@ func (self *Runner) MustKillProcess(pid int) {
 		return
 	}
 	for i := 0; i < self.killLimit; i++ {
-		process, err := process_utils.GetProcessFromPid(pid)
+		process, err := GetProcess(pid)
 		if err != nil {
 			log.Fatalf("Unexpected Error: %s", err.Error())
 		}
@@ -128,7 +126,7 @@ func (self *Runner) MustKillProcess(pid int) {
 		time.Sleep(self.killInterval)
 	}
 
-	process, err := process_utils.GetProcessFromPid(pid)
+	process, err := GetProcess(pid)
 	if err != nil {
 		log.Fatalf("Unexpected Error: %s", err.Error())
 	}
