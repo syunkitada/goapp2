@@ -17,7 +17,7 @@ func TestGetProcesses(t *testing.T) {
 	rootDir := wd + "/testdata/root/"
 
 	beforeTime := time.Now().Add(-1 * time.Second)
-	processes, pidIndexMap, err := GetProcesses(rootDir)
+	processes, pidIndexMap, err := GetProcesses(rootDir, true)
 	a.NoError(err)
 	afterTime := time.Now().Add(1 * time.Second)
 
@@ -162,49 +162,49 @@ func TestGetProcesses(t *testing.T) {
 
 	{
 		// rootがない
-		_, _, err := GetProcesses(wd + "/testdata/none/")
+		_, _, err := GetProcesses(wd+"/testdata/none/", true)
 		a.Error(err)
 	}
 
 	{
 		// procがディレクトリではなくファイル
-		_, _, err := GetProcesses(wd + "/testdata/exception_file_proc/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_file_proc/", true)
 		a.Error(err)
 	}
 
 	{
 		// cmdlineがない
-		_, _, err := GetProcesses(wd + "/testdata/exception_no_cmdline/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_no_cmdline/", true)
 		a.Error(err)
 	}
 
 	{
 		// statusがない
-		_, _, err := GetProcesses(wd + "/testdata/exception_no_status/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_no_status/", true)
 		a.Error(err)
 	}
 
 	{
 		// schedstatがない
-		_, _, err := GetProcesses(wd + "/testdata/exception_no_schedstat/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_no_schedstat/", true)
 		a.Error(err)
 	}
 
 	{
 		// statがない
-		_, _, err := GetProcesses(wd + "/testdata/exception_no_stat/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_no_stat/", true)
 		a.Error(err)
 	}
 
 	{
 		// ioがない
-		_, _, err := GetProcesses(wd + "/testdata/exception_no_io/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_no_io/", true)
 		a.Error(err)
 	}
 
 	{
 		// schedstatのフォーマットが間違ってる
-		_, _, err := GetProcesses(wd + "/testdata/exception_invalid_schedstat/")
+		_, _, err := GetProcesses(wd+"/testdata/exception_invalid_schedstat/", true)
 		a.Error(err)
 	}
 }

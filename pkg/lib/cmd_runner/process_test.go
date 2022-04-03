@@ -11,11 +11,11 @@ import (
 func TestGetProcess(t *testing.T) {
 	a := assert.New(t)
 
-	command1 := exec.Command("sleep", "5")
+	command1 := exec.Command("sleep", "10")
 	command1.Start()
 	pid1 := command1.Process.Pid
 
-	command2 := exec.Command("sleep", "6")
+	command2 := exec.Command("sleep", "12")
 	command2.Start()
 	pid2 := command2.Process.Pid
 
@@ -23,12 +23,12 @@ func TestGetProcess(t *testing.T) {
 		// 単体プロセスのテスト
 		process, err := GetProcess(pid1)
 		a.NoError(err)
+		a.NotNil(process)
 		expected := Process{
 			Pid:      pid1,
-			Cmds:     []string{"sleep", "5"},
+			Cmds:     []string{"sleep", "10"},
 			Children: []Process{},
 		}
-		a.NotNil(process)
 		a.Equal(expected, *process)
 
 		// go testの子プロセスとしてsleepプロセスがあることを確認する
@@ -36,8 +36,8 @@ func TestGetProcess(t *testing.T) {
 		selfProcess, err := GetProcess(selfPid)
 		a.NoError(err)
 		expectedChildren := []Process{
-			Process{Pid: pid1, Cmds: []string{"sleep", "5"}, Children: []Process{}},
-			Process{Pid: pid2, Cmds: []string{"sleep", "6"}, Children: []Process{}},
+			Process{Pid: pid1, Cmds: []string{"sleep", "10"}, Children: []Process{}},
+			Process{Pid: pid2, Cmds: []string{"sleep", "12"}, Children: []Process{}},
 		}
 		a.ElementsMatch(expectedChildren, selfProcess.Children)
 	}

@@ -56,7 +56,7 @@ type ProcessStat struct {
 
 const ProcDir = "proc/"
 
-func GetProcesses(rootDir string) (processes []Process, pidIndexMap map[int]int, err error) {
+func GetProcesses(rootDir string, isVerbose bool) (processes []Process, pidIndexMap map[int]int, err error) {
 	var procDirFile *os.File
 	procDir := rootDir + ProcDir
 	if procDirFile, err = os.Open(procDir); err != nil {
@@ -79,7 +79,7 @@ func GetProcesses(rootDir string) (processes []Process, pidIndexMap map[int]int,
 		}
 
 		var process *Process
-		if process, err = getProcess(procDir, procFileInfo.Name()); err != nil {
+		if process, err = getProcess(procDir, procFileInfo.Name(), isVerbose); err != nil {
 			return
 		}
 
@@ -103,7 +103,7 @@ func GetProcesses(rootDir string) (processes []Process, pidIndexMap map[int]int,
 	return
 }
 
-func getProcess(rootProcDir string, pidStr string) (process *Process, err error) {
+func getProcess(rootProcDir string, pidStr string, isVerbose bool) (process *Process, err error) {
 	var tmpFile *os.File
 	var tmpBytes []byte
 	var tmpTexts []string
@@ -240,6 +240,18 @@ func getProcess(rootProcDir string, pidStr string) (process *Process, err error)
 	// nonvoluntary_ctxt_switches:     219
 	nonvoluntaryCtxtSwitches, _ := strconv.Atoi(statusMap["nonvoluntary_ctxt_switches:"][0])
 
+	process = &Process{
+		Name:  name,
+		Cmds:  cmds,
+		Pid:   pid,
+		Tgid:  tgid,
+		Ppid:  ppid,
+		State: stateInt,
+	}
+	if !isVerbose {
+		return
+	}
+
 	// ----------------------------------------------------------------------------------------------------
 	// Parse /proc/[pid]/schedstat
 	// 2554841551 177487694 35200
@@ -305,7 +317,7 @@ func getProcess(rootProcDir string, pidStr string) (process *Process, err error)
 	tmpBytes, _, _ = tmpReader.ReadLine()
 	writeBytes, _ := strconv.Atoi(str_utils.ParseLastValue(string(tmpBytes)))
 
-	stat := ProcessStat{
+	process.Stat = ProcessStat{
 		SchedCpuTime:             schedCpuTime,
 		SchedWaitTime:            schedWaitTime,
 		SchedTimeSlices:          schedTimeSlices,
@@ -326,16 +338,6 @@ func getProcess(rootProcDir string, pidStr string) (process *Process, err error)
 		Syscw:      syscw,
 		ReadBytes:  readBytes,
 		WriteBytes: writeBytes,
-	}
-
-	process = &Process{
-		Name:  name,
-		Cmds:  cmds,
-		Pid:   pid,
-		Tgid:  tgid,
-		Ppid:  ppid,
-		State: stateInt,
-		Stat:  stat,
 	}
 
 	return

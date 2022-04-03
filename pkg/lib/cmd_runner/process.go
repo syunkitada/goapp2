@@ -15,7 +15,7 @@ type Process struct {
 func GetProcess(pid int) (process *Process, err error) {
 	var processes []process_utils.Process
 	var pidIndexMap map[int]int
-	if processes, pidIndexMap, err = process_utils.GetProcesses("/"); err != nil {
+	if processes, pidIndexMap, err = process_utils.GetProcesses("/", false); err != nil {
 		return
 	}
 
