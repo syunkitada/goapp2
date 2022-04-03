@@ -10,6 +10,10 @@ bench:
 
 cover:
 	go tool cover -func=.coverage.out
+	go tool cover -html=.coverage.out -o .coverage.html
+
+srv:
+	python3 -m http.server 8000
 
 #
 # tasks for ci
