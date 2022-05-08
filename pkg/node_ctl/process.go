@@ -1,8 +1,13 @@
 package node_ctl
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/spf13/cobra"
-	"github.com/syunkitada/goapp2/pkg/lib/process_utils"
+	"github.com/syunkitada/goapp2/pkg/lib/os_utils"
 	"github.com/syunkitada/goapp2/pkg/lib/runner"
 )
 
@@ -16,18 +21,29 @@ var psCmd = &cobra.Command{
 	Use:   "ps",
 	Short: "process",
 	Run: func(cmd *cobra.Command, args []string) {
-		if isStat {
-			conf := process_utils.StatControllerConfig{
-				Config: runner.Config{
-					Interval:    interval,
-					StopTimeout: stopTimeout,
-				},
-				TargetProcess: process,
-				TargetPid:     pid,
-			}
-			statCtl := process_utils.NewStatController(&conf)
-			statCtl.Start()
+		conf := os_utils.StatControllerConfig{
+			Config: runner.Config{
+				Interval:    interval,
+				StopTimeout: stopTimeout,
+			},
+			HandleProcesses: func(processes []os_utils.Process) {
+				for _, p := range processes {
+					if pid != 0 && p.Pid != pid {
+						continue
+					}
+					if process != "" && !strings.Contains(p.Name, process) {
+						continue
+					}
+					fmt.Println(strconv.Itoa(p.Pid), p.Name, strconv.Itoa(p.Stat.UserUtil), strconv.Itoa(p.Stat.WaitUtil))
+				}
+
+				if !isStat {
+					os.Exit(0)
+				}
+			},
 		}
+		statCtl := os_utils.NewStatController(&conf)
+		statCtl.Start()
 	},
 }
 
