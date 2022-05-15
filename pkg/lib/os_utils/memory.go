@@ -8,11 +8,6 @@ import (
 	"strings"
 
 	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
-	// "github.com/syunkitada/goapp/pkg/lib/logger"
-	// "github.com/syunkitada/goapp/pkg/lib/str_utils"
-	// "github.com/syunkitada/goapp/pkg/resource/config"
-	// "github.com/syunkitada/goapp/pkg/resource/consts"
-	// "github.com/syunkitada/goapp/pkg/resource/resource_api/spec"
 )
 
 type MemStat struct {
@@ -55,6 +50,22 @@ type MemNodeStat struct {
 	HugePages1GTotal int
 	HugePates1GFree  int
 	HugePages1GUsed  int
+
+	Buddyinfo BuddyinfoStat
+}
+
+type BuddyinfoStat struct {
+	M4K   int
+	M8K   int
+	M16K  int
+	M32K  int
+	M64K  int
+	M128K int
+	M256K int
+	M512K int
+	M1M   int
+	M2M   int
+	M4M   int
 }
 
 type Vmstat struct {
@@ -239,6 +250,55 @@ func GetMemStat(rootDir string) (stat *MemStat, err error) {
 		Pgfault:      pgfault,
 		Pswapin:      pswapin,
 		Pswapout:     pswapout,
+	}
+
+	// Read /proc/buddyinfo
+	// Output example is below.
+	// $ /proc/buddyinfo
+	//                           4K     8k    16k    32k    64k   128k   256k   512k     1M     2M     4M
+	// Node 0, zone      DMA      0      0      0      1      2      1      1      0      1      1      3
+	// Node 0, zone    DMA32      3      3      3      3      3      2      5      6      5      2    874
+	// Node 0, zone   Normal  24727  53842  18419  15120  10448   4451   1761    804    382    105    229
+	buddyinfoFile, _ := os.Open("/proc/buddyinfo")
+	defer buddyinfoFile.Close()
+	tmpReader = bufio.NewReader(buddyinfoFile)
+	for {
+		tmpBytes, _, tmpErr = tmpReader.ReadLine()
+		if tmpErr != nil {
+			break
+		}
+		buddyinfo := str_utils.SplitSpace(string(tmpBytes))
+		if len(buddyinfo) < 10 {
+			continue
+		}
+		if buddyinfo[3] == "Normal" {
+			nodeId, _ := strconv.Atoi(buddyinfo[1])
+			m4K, _ := strconv.Atoi(buddyinfo[4])
+			m8K, _ := strconv.Atoi(buddyinfo[5])
+			m16K, _ := strconv.Atoi(buddyinfo[6])
+			m32K, _ := strconv.Atoi(buddyinfo[7])
+			m64K, _ := strconv.Atoi(buddyinfo[8])
+			m128K, _ := strconv.Atoi(buddyinfo[9])
+			m256K, _ := strconv.Atoi(buddyinfo[10])
+			m512K, _ := strconv.Atoi(buddyinfo[11])
+			m1M, _ := strconv.Atoi(buddyinfo[12])
+			m2M, _ := strconv.Atoi(buddyinfo[13])
+			m4M, _ := strconv.Atoi(buddyinfo[14])
+
+			nodes[nodeId].Buddyinfo = BuddyinfoStat{
+				M4K:   m4K,
+				M8K:   m8K,
+				M16K:  m16K,
+				M32K:  m32K,
+				M64K:  m64K,
+				M128K: m128K,
+				M256K: m256K,
+				M512K: m512K,
+				M1M:   m1M,
+				M2M:   m2M,
+				M4M:   m4M,
+			}
+		}
 	}
 
 	stat = &MemStat{
