@@ -3,7 +3,7 @@ package cmd_runner
 import (
 	"fmt"
 
-	"github.com/syunkitada/goapp2/pkg/lib/process_utils"
+	"github.com/syunkitada/goapp2/pkg/lib/os_utils"
 )
 
 type Process struct {
@@ -13,9 +13,9 @@ type Process struct {
 }
 
 func GetProcess(pid int) (process *Process, err error) {
-	var processes []process_utils.Process
+	var processes []os_utils.Process
 	var pidIndexMap map[int]int
-	if processes, pidIndexMap, err = process_utils.GetProcesses("/", false); err != nil {
+	if processes, pidIndexMap, err = os_utils.GetProcesses("/", false); err != nil {
 		return
 	}
 
@@ -23,7 +23,7 @@ func GetProcess(pid int) (process *Process, err error) {
 	return
 }
 
-func getProcess(processes []process_utils.Process, pidIndexMap map[int]int, pid int) (process *Process, err error) {
+func getProcess(processes []os_utils.Process, pidIndexMap map[int]int, pid int) (process *Process, err error) {
 	pidIndex, ok := pidIndexMap[pid]
 	if !ok {
 		return

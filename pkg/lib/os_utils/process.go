@@ -1,4 +1,4 @@
-package process_utils
+package os_utils
 
 import (
 	"bufio"
@@ -52,6 +52,24 @@ type ProcessStat struct {
 	Syscw      int
 	ReadBytes  int
 	WriteBytes int
+
+	// 差分Stat
+	UserUtil   int
+	SystemUtil int
+	GuestUtil  int
+	CguestUtil int
+	WaitUtil   int
+
+	SchedTimeSlicesPerSec int
+	SchedCpuTimePerSec    int
+
+	VoluntaryCtxtSwitchesPerSec    int
+	NonvoluntaryCtxtSwitchesPerSec int
+
+	SyscrPerSec      int
+	SyscwPerSec      int
+	ReadBytesPerSec  int
+	WriteBytesPerSec int
 }
 
 const ProcDir = "proc/"

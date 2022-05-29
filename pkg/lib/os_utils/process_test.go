@@ -1,4 +1,4 @@
-package process_utils
+package os_utils
 
 import (
 	"os"
@@ -86,13 +86,13 @@ func TestGetProcesses(t *testing.T) {
 			},
 		},
 		Process{
-			Name: "process_utils.t",
+			Name: "os_utils.t",
 			Pid:  21607,
 			Tgid: 21607,
 			Ppid: 21401,
 			Cmd:  "",
 			Cmds: []string{
-				"/tmp/go-build033075601/b001/process_utils.test",
+				"/tmp/go-build033075601/b001/os_utils.test",
 				"-test.timeout=10m0s",
 				"-test.v=true",
 				"-test.coverprofile=/tmp/go-build033075601/b001/_cover_.out",
