@@ -510,21 +510,6 @@ func GetNetStat() (netStat *NetStat, err error) {
 	}
 	netDevStatMap := parseNetDev(string(bytes))
 
-	// netnsSet, tmpErr := os_utils.GetNetnsSet()
-	// if tmpErr != nil {
-	// 	return
-	// }
-	// for netns := range netnsSet {
-	// 	out, tmpErr := os_utils.ExecInIpNetns(tctx, netns, "cat /proc/net/dev")
-	// 	if tmpErr != nil {
-	// 		return
-	// 	}
-	// 	netnsTmpNetDevStatMap := reader.ParseNetDev(out, timestamp)
-	// 	for key, value := range netnsTmpNetDevStatMap {
-	// 		tmpNetDevStatMap[key] = value
-	// 	}
-	// }
-
 	netStat = &NetStat{
 		TcpExtStat:    tcpExtStat,
 		IpExtStat:     ipExtStat,

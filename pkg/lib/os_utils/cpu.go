@@ -8,11 +8,6 @@ import (
 	"time"
 
 	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
-	// "github.com/syunkitada/goapp/pkg/lib/logger"
-	// "github.com/syunkitada/goapp/pkg/lib/str_utils"
-	// "github.com/syunkitada/goapp/pkg/resource/config"
-	// "github.com/syunkitada/goapp/pkg/resource/consts"
-	// "github.com/syunkitada/goapp/pkg/resource/resource_api/spec"
 )
 
 type CpuProcessorStat struct {
@@ -59,29 +54,6 @@ type CpuStat struct {
 
 	CpuProcessorStats []CpuProcessorStat
 }
-
-// func Read() {
-// 	timestamp := time.Now()
-// 	if reader.tmpCpuStat == nil {
-// 		reader.tmpCpuStat, _ = reader.read()
-// 	} else {
-// 		tmpCpuStat, tmpCpuProcessorStats := reader.read()
-// 		if len(reader.cpuStats) > reader.cacheLength {
-// 			reader.cpuStats = reader.cpuStats[1:]
-// 		}
-// 		reader.cpuStats = append(reader.cpuStats, CpuStat{
-// 			Timestamp:    timestamp,
-// 			Intr:         tmpCpuStat.Intr - reader.tmpCpuStat.Intr,
-// 			Ctx:          tmpCpuStat.Ctx - reader.tmpCpuStat.Ctx,
-// 			Btime:        tmpCpuStat.Btime - reader.tmpCpuStat.Btime,
-// 			Processes:    tmpCpuStat.Processes - reader.tmpCpuStat.Processes,
-// 			ProcsRunning: tmpCpuStat.ProcsRunning,
-// 			ProcsBlocked: tmpCpuStat.ProcsBlocked,
-// 			Softirq:      tmpCpuStat.Softirq - reader.tmpCpuStat.Softirq,
-// 		})
-//
-// 	}
-// }
 
 func GetCpuStat() (cpuStat *CpuStat, err error) {
 	var tmpReader *bufio.Reader
@@ -253,126 +225,3 @@ func GetCpuStat() (cpuStat *CpuStat, err error) {
 
 	return
 }
-
-// func (reader *CpuReader) ReportMetrics() (metrics []spec.ResourceMetric) {
-// 	metrics = make([]spec.ResourceMetric, 0, len(reader.cpuStats))
-//
-// 	for _, stat := range reader.cpuStats {
-// 		if stat.ReportStatus == ReportStatusReported {
-// 			continue
-// 		}
-//
-// 		if reader.checkProcsRunningWarnLimit > 0 && stat.ProcsRunning > reader.checkProcsRunningWarnLimit {
-// 			reader.checkProcsRunningWarnCounter += 1
-// 		} else {
-// 			reader.checkProcsRunningWarnCounter = 0
-// 		}
-// 		if reader.checkProcsRunningCritLimit > 0 && stat.ProcsRunning > reader.checkProcsRunningCritLimit {
-// 			reader.checkProcsRunningCritCounter += 1
-// 		} else {
-// 			reader.checkProcsRunningCritCounter = 0
-// 		}
-//
-// 		if reader.checkProcsBlockedWarnLimit > 0 && stat.ProcsBlocked > reader.checkProcsBlockedWarnLimit {
-// 			reader.checkProcsBlockedWarnCounter += 1
-// 		} else {
-// 			reader.checkProcsBlockedWarnCounter = 0
-// 		}
-// 		if reader.checkProcsBlockedCritLimit > 0 && stat.ProcsBlocked > reader.checkProcsBlockedCritLimit {
-// 			reader.checkProcsBlockedCritCounter += 1
-// 		} else {
-// 			reader.checkProcsBlockedCritCounter = 0
-// 		}
-//
-// 		metrics = append(metrics, spec.ResourceMetric{
-// 			Name: "system_cpu",
-// 			Time: stat.Timestamp,
-// 			Metric: map[string]interface{}{
-// 				"intr":          stat.Intr,
-// 				"ctx":           stat.Ctx,
-// 				"btime":         stat.Btime,
-// 				"processes":     stat.Processes,
-// 				"procs_running": stat.ProcsRunning,
-// 				"procs_blocked": stat.ProcsBlocked,
-// 				"softirq":       stat.Softirq,
-// 			},
-// 		})
-// 	}
-//
-// 	for _, stat := range reader.cpuProcessorStats {
-// 		if stat.ReportStatus == ReportStatusReported {
-// 			continue
-// 		}
-//
-// 		metrics = append(metrics, spec.ResourceMetric{
-// 			Name: "system_processor",
-// 			Time: stat.Timestamp,
-// 			Tag: map[string]string{
-// 				"processor": strconv.FormatInt(stat.Processor, 10),
-// 			},
-// 			Metric: map[string]interface{}{
-// 				"mhz":       stat.Mhz,
-// 				"user":      stat.User,
-// 				"nice":      stat.Nice,
-// 				"system":    stat.System,
-// 				"idle":      stat.Idle,
-// 				"iowait":    stat.Iowait,
-// 				"irq":       stat.Irq,
-// 				"softirq":   stat.Softirq,
-// 				"steal":     stat.Steal,
-// 				"guest":     stat.Guest,
-// 				"guestnice": stat.GuestNice,
-// 			},
-// 		})
-// 	}
-//
-// 	return
-// }
-//
-// func (reader *CpuReader) ReportEvents() (events []spec.ResourceEvent) {
-// 	if len(reader.cpuStats) == 0 {
-// 		return
-// 	}
-//
-// 	cpuStat := reader.cpuStats[len(reader.cpuStats)-1]
-// 	eventProcsRunningLevel := consts.EventLevelSuccess
-// 	if reader.checkProcsRunningCritCounter > reader.checkProcsRunningOccurences {
-// 		eventProcsRunningLevel = consts.EventLevelCritical
-// 	} else if reader.checkProcsRunningWarnCounter > reader.checkProcsRunningOccurences {
-// 		eventProcsRunningLevel = consts.EventLevelWarning
-// 	}
-//
-// 	events = append(events, spec.ResourceEvent{
-// 		Name:            "CheckCpuProcsRunning",
-// 		Time:            cpuStat.Timestamp,
-// 		Level:           eventProcsRunningLevel,
-// 		Msg:             fmt.Sprintf("ProcsRunning: %d", cpuStat.ProcsRunning),
-// 		ReissueDuration: reader.checkProcsRunningReissueDuration,
-// 	})
-//
-// 	eventProcsBlockedLevel := consts.EventLevelSuccess
-// 	if reader.checkProcsBlockedCritCounter > reader.checkProcsBlockedOccurences {
-// 		eventProcsBlockedLevel = consts.EventLevelCritical
-// 	} else if reader.checkProcsBlockedWarnCounter > reader.checkProcsBlockedOccurences {
-// 		eventProcsBlockedLevel = consts.EventLevelWarning
-// 	}
-// 	events = append(events, spec.ResourceEvent{
-// 		Name:            "CheckCpuProcsBlocked",
-// 		Time:            cpuStat.Timestamp,
-// 		Level:           eventProcsBlockedLevel,
-// 		Msg:             fmt.Sprintf("ProcsBlocked: %d", cpuStat.ProcsBlocked),
-// 		ReissueDuration: reader.checkProcsBlockedReissueDuration,
-// 	})
-//
-// 	return
-// }
-//
-// func (reader *CpuReader) Reported() {
-// 	for i := range reader.cpuStats {
-// 		reader.cpuStats[i].ReportStatus = ReportStatusReported
-// 	}
-// 	for i := range reader.cpuProcessorStats {
-// 		reader.cpuProcessorStats[i].ReportStatus = ReportStatusReported
-// 	}
-// 	return
-// }
