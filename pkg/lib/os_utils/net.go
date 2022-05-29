@@ -282,7 +282,22 @@ type IpExtStat struct {
 	// stat
 	InNoRoutesPerSec      int
 	InTruncatedPktsPerSec int
+	InMcastPktsPerSec     int
+	OutMcastPktsPerSec    int
+	InBcastPktsPerSec     int
+	OutBcastPktsPerSec    int
+	InOctetsPerSec        int
+	OutOctetsPerSec       int
+	InMcastOctetsPerSec   int
+	OutMcastOctetsPerSec  int
+	InBcastOctetsPerSec   int
+	OutBcastOctetsPerSec  int
 	InCsumErrorsPerSec    int
+	InNoECTPktsPerSec     int
+	InECT1PktsPerSec      int
+	InECT0PktsPerSec      int
+	InCEPktsPerSec        int
+	ReasmOverlapsPerSec   int
 }
 
 type NetDevStat struct {
@@ -461,7 +476,22 @@ func GetNetStat() (netStat *NetStat, err error) {
 	ipExtStat := IpExtStat{
 		InNoRoutes:      ipExtMap["InNoRoutes"],
 		InTruncatedPkts: ipExtMap["InTruncatedPkts"],
+		InMcastPkts:     ipExtMap["InMcastPkts"],
+		OutMcastPkts:    ipExtMap["OutMcastPkts"],
+		InBcastPkts:     ipExtMap["InBcastPkts"],
+		OutBcastPkts:    ipExtMap["OutBcastPkts"],
+		InOctets:        ipExtMap["InOctets"],
+		OutOctets:       ipExtMap["OutOctets"],
+		InMcastOctets:   ipExtMap["InMcastOctets"],
+		OutMcastOctets:  ipExtMap["OutMcastOctets"],
+		InBcastOctets:   ipExtMap["InBcastOctets"],
+		OutBcastOctets:  ipExtMap["OutBcastOctets"],
 		InCsumErrors:    ipExtMap["InCsumErrors"],
+		InNoECTPkts:     ipExtMap["InNoECTPkts"],
+		InECT1Pkts:      ipExtMap["InECT1Pkts"],
+		InECT0Pkts:      ipExtMap["InECT0Pkts"],
+		InCEPkts:        ipExtMap["InCEPkts"],
+		ReasmOverlaps:   ipExtMap["ReasmOverlaps"],
 	}
 
 	// $ cat /proc/net/dev

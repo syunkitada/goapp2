@@ -130,25 +130,28 @@ func (self *StatRunner) syncDiskStat() {
 
 	for deviceName, cstat := range diskStat.DiskDeviceStatMap {
 		bstat, ok := diskStat.DiskDeviceStatMap[deviceName]
-		if ok {
-			cstat.ReadsPerSec = (cstat.ReadsCompleted - bstat.ReadsCompleted) / interval
-			cstat.RmergesPerSec = (cstat.ReadsMerges - bstat.ReadsMerges) / interval
-			cstat.ReadBytesPerSec = ((cstat.ReadSectors - bstat.ReadSectors) * cstat.PblockSize) / interval
-			cstat.ReadMsPerSec = (cstat.ReadMs - bstat.ReadMs) / interval
-
-			cstat.WritesPerSec = (cstat.WritesCompleted - bstat.WritesCompleted) / interval
-			cstat.WmergesPerSec = (cstat.WritesMerges - bstat.WritesMerges) / interval
-			cstat.WriteBytesPerSec = ((cstat.WriteSectors - bstat.WriteSectors) * cstat.PblockSize) / interval
-			cstat.WriteMsPerSec = (cstat.WriteMs - bstat.WriteMs) / interval
-
-			cstat.DiscardsPerSec = (cstat.DiscardsCompleted - bstat.DiscardsCompleted) / interval
-			cstat.DmergesPerSec = (cstat.DiscardsMerges - bstat.DiscardsMerges) / interval
-			cstat.DiscardBytesPerSec = ((cstat.DiscardSectors - bstat.DiscardSectors) * cstat.PblockSize) / interval
-			cstat.DiscardMsPerSec = (cstat.DiscardMs - bstat.DiscardMs) / interval
-
-			cstat.IosMsPerSec = (cstat.IosMs - bstat.IosMs) / interval
-			cstat.WeightedIosMsPerSec = (cstat.WeightedIosMs - bstat.WeightedIosMs) / interval
+		if !ok {
+			continue
 		}
+		cstat.ReadsPerSec = (cstat.ReadsCompleted - bstat.ReadsCompleted) / interval
+		cstat.RmergesPerSec = (cstat.ReadsMerges - bstat.ReadsMerges) / interval
+		cstat.ReadBytesPerSec = ((cstat.ReadSectors - bstat.ReadSectors) * cstat.PblockSize) / interval
+		cstat.ReadMsPerSec = (cstat.ReadMs - bstat.ReadMs) / interval
+
+		cstat.WritesPerSec = (cstat.WritesCompleted - bstat.WritesCompleted) / interval
+		cstat.WmergesPerSec = (cstat.WritesMerges - bstat.WritesMerges) / interval
+		cstat.WriteBytesPerSec = ((cstat.WriteSectors - bstat.WriteSectors) * cstat.PblockSize) / interval
+		cstat.WriteMsPerSec = (cstat.WriteMs - bstat.WriteMs) / interval
+
+		cstat.DiscardsPerSec = (cstat.DiscardsCompleted - bstat.DiscardsCompleted) / interval
+		cstat.DmergesPerSec = (cstat.DiscardsMerges - bstat.DiscardsMerges) / interval
+		cstat.DiscardBytesPerSec = ((cstat.DiscardSectors - bstat.DiscardSectors) * cstat.PblockSize) / interval
+		cstat.DiscardMsPerSec = (cstat.DiscardMs - bstat.DiscardMs) / interval
+
+		cstat.IosMsPerSec = (cstat.IosMs - bstat.IosMs) / interval
+		cstat.WeightedIosMsPerSec = (cstat.WeightedIosMs - bstat.WeightedIosMs) / interval
+
+		diskStat.DiskDeviceStatMap[deviceName] = cstat
 	}
 
 	self.currentDiskStat = diskStat
@@ -180,6 +183,8 @@ func (self *StatRunner) syncNetStat() {
 		cstat.TransmitPacketsPerSec = (cstat.TransmitPackets - bstat.TransmitPackets) / interval
 		cstat.TransmitErrorsPerSec = (cstat.TransmitErrors - bstat.TransmitErrors) / interval
 		cstat.TransmitDropsPerSec = (cstat.TransmitDrops - bstat.TransmitDrops) / interval
+
+		netStat.NetDevStatMap[dev] = cstat
 	}
 
 	netStat.TcpExtStat.SyncookiesSentPerSec = (netStat.TcpExtStat.SyncookiesSent - self.currentNetStat.TcpExtStat.SyncookiesSent) / interval
@@ -304,6 +309,25 @@ func (self *StatRunner) syncNetStat() {
 
 	netStat.IpExtStat.InNoRoutesPerSec = (netStat.IpExtStat.InNoRoutes - self.currentNetStat.IpExtStat.InNoRoutes) / interval
 	netStat.IpExtStat.InTruncatedPktsPerSec = (netStat.IpExtStat.InTruncatedPkts - self.currentNetStat.IpExtStat.InTruncatedPkts) / interval
+	netStat.IpExtStat.InCsumErrorsPerSec = (netStat.IpExtStat.InCsumErrors - self.currentNetStat.IpExtStat.InCsumErrors) / interval
+	netStat.IpExtStat.InNoRoutesPerSec = (netStat.IpExtStat.InNoRoutes - self.currentNetStat.IpExtStat.InNoRoutes) / interval
+	netStat.IpExtStat.InTruncatedPktsPerSec = (netStat.IpExtStat.InTruncatedPkts - self.currentNetStat.IpExtStat.InTruncatedPkts) / interval
+	netStat.IpExtStat.InMcastPktsPerSec = (netStat.IpExtStat.InMcastPkts - self.currentNetStat.IpExtStat.InMcastPkts) / interval
+	netStat.IpExtStat.OutMcastPktsPerSec = (netStat.IpExtStat.OutMcastPkts - self.currentNetStat.IpExtStat.OutMcastPkts) / interval
+	netStat.IpExtStat.InBcastPktsPerSec = (netStat.IpExtStat.InBcastPkts - self.currentNetStat.IpExtStat.InBcastPkts) / interval
+	netStat.IpExtStat.OutBcastPktsPerSec = (netStat.IpExtStat.OutBcastPkts - self.currentNetStat.IpExtStat.OutBcastPkts) / interval
+	netStat.IpExtStat.InOctetsPerSec = (netStat.IpExtStat.InOctets - self.currentNetStat.IpExtStat.InOctets) / interval
+	netStat.IpExtStat.OutOctetsPerSec = (netStat.IpExtStat.OutOctets - self.currentNetStat.IpExtStat.OutOctets) / interval
+	netStat.IpExtStat.InMcastOctetsPerSec = (netStat.IpExtStat.InMcastOctets - self.currentNetStat.IpExtStat.InMcastOctets) / interval
+	netStat.IpExtStat.OutMcastOctetsPerSec = (netStat.IpExtStat.OutMcastOctets - self.currentNetStat.IpExtStat.OutMcastOctets) / interval
+	netStat.IpExtStat.InBcastOctetsPerSec = (netStat.IpExtStat.InBcastOctets - self.currentNetStat.IpExtStat.InBcastOctets) / interval
+	netStat.IpExtStat.OutBcastOctetsPerSec = (netStat.IpExtStat.OutBcastOctets - self.currentNetStat.IpExtStat.OutBcastOctets) / interval
+	netStat.IpExtStat.InCsumErrorsPerSec = (netStat.IpExtStat.InCsumErrors - self.currentNetStat.IpExtStat.InCsumErrors) / interval
+	netStat.IpExtStat.InNoECTPktsPerSec = (netStat.IpExtStat.InNoECTPkts - self.currentNetStat.IpExtStat.InNoECTPkts) / interval
+	netStat.IpExtStat.InECT1PktsPerSec = (netStat.IpExtStat.InECT1Pkts - self.currentNetStat.IpExtStat.InECT1Pkts) / interval
+	netStat.IpExtStat.InECT0PktsPerSec = (netStat.IpExtStat.InECT0Pkts - self.currentNetStat.IpExtStat.InECT0Pkts) / interval
+	netStat.IpExtStat.InCEPktsPerSec = (netStat.IpExtStat.InCEPkts - self.currentNetStat.IpExtStat.InCEPkts) / interval
+	netStat.IpExtStat.ReasmOverlapsPerSec = (netStat.IpExtStat.ReasmOverlaps - self.currentNetStat.IpExtStat.ReasmOverlaps) / interval
 
 	self.currentNetStat = netStat
 }
@@ -345,6 +369,7 @@ func (self *StatRunner) syncProcessStat() {
 		stat.SyscwPerSec = (stat.Syscw - bstat.Syscw) / interval
 		stat.ReadBytesPerSec = (stat.ReadBytes - bstat.ReadBytes) / interval
 		stat.WriteBytesPerSec = (stat.WriteBytes - bstat.WriteBytes) / interval
+
 		processes[i].Stat = stat
 	}
 
@@ -369,6 +394,7 @@ func (self *StatRunner) Run(runAt time.Time) {
 	self.syncDiskStat()
 	self.syncProcessStat()
 	self.syncLoginUserStat()
+	self.syncNetStat()
 
 	stats := &Stats{
 		CpuStat:       self.currentCpuStat,
@@ -376,6 +402,7 @@ func (self *StatRunner) Run(runAt time.Time) {
 		DiskStat:      self.currentDiskStat,
 		Processes:     self.currentProcesses,
 		LoginUserStat: self.currentLoginUserStat,
+		NetStat:       self.currentNetStat,
 	}
 
 	if self.currentStats != nil {
