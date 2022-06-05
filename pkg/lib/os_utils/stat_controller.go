@@ -54,6 +54,7 @@ type StatRunner struct {
 	currentDiskStat      *DiskStat
 	currentNetStat       *NetStat
 	currentLoginUserStat *LoginUserStat
+	currentUptimeStat    *UptimeStat
 	currentProcesses     []Process
 	currentPidIndexMap   map[int]int
 	currentStats         *Stats
@@ -66,6 +67,7 @@ type Stats struct {
 	NetStat       *NetStat
 	Processes     []Process
 	LoginUserStat *LoginUserStat
+	UptimeStat    *UptimeStat
 }
 
 func (self *StatRunner) syncCpuStat() {
@@ -388,21 +390,34 @@ func (self *StatRunner) syncLoginUserStat() {
 	return
 }
 
+func (self *StatRunner) syncUptimeStat() {
+	var uptimeStat *UptimeStat
+	var err error
+	if uptimeStat, err = GetUptimeStat("/"); err != nil {
+		return
+	}
+
+	self.currentUptimeStat = uptimeStat
+	return
+}
+
 func (self *StatRunner) Run(runAt time.Time) {
 	self.syncCpuStat()
 	self.syncMemStat()
 	self.syncDiskStat()
 	self.syncProcessStat()
-	self.syncLoginUserStat()
 	self.syncNetStat()
+	self.syncLoginUserStat()
+	self.syncUptimeStat()
 
 	stats := &Stats{
 		CpuStat:       self.currentCpuStat,
 		MemStat:       self.currentMemStat,
 		DiskStat:      self.currentDiskStat,
 		Processes:     self.currentProcesses,
-		LoginUserStat: self.currentLoginUserStat,
 		NetStat:       self.currentNetStat,
+		LoginUserStat: self.currentLoginUserStat,
+		UptimeStat:    self.currentUptimeStat,
 	}
 
 	if self.currentStats != nil {
