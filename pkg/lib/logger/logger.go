@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/syunkitada/goapp2/pkg/lib/struct_utils"
 	"github.com/syunkitada/goapp2/pkg_infra/lib/infra_logger"
 	"github.com/syunkitada/goapp2/pkg_infra/lib/infra_os"
 )
@@ -15,12 +16,20 @@ import (
 var disableExit bool
 
 var logger *zap.Logger
+var sugar *zap.SugaredLogger
 
 type Config struct {
 	OutputPaths []string
 	Level       string
 	Encoding    string
 	DisableExit bool
+}
+
+var conf = Config{
+	OutputPaths: []string{"stdout"},
+	Level:       "info",
+	Encoding:    "json",
+	DisableExit: false,
 }
 
 const (
@@ -43,10 +52,9 @@ func NewZapCoreLevel(levelStr string) (level zapcore.Level) {
 	return
 }
 
-func Init(conf *Config) {
-	if conf.Encoding == "" {
-		conf.Encoding = "json"
-	}
+func Init(conf2 *Config) {
+	struct_utils.MergeStruct(conf, conf2)
+
 	disableExit = conf.DisableExit
 	zapConf := zap.Config{
 		Level:       zap.NewAtomicLevelAt(NewZapCoreLevel(conf.Level)),
@@ -72,9 +80,11 @@ func Init(conf *Config) {
 	var err error
 	logger, err = zapConf.Build()
 	if err != nil {
-		fmt.Println("Failed to initialize logger")
+		fmt.Println("Failed to initialize logger", err.Error())
 		infra_os.Exit(disableExit, 1)
 	}
+
+	sugar = logger.Sugar()
 }
 
 type TraceContext struct {
@@ -116,6 +126,10 @@ func Error(tctx *TraceContext, msg string, fields ...zap.Field) {
 
 func Fatal(tctx *TraceContext, msg string, fields ...zap.Field) {
 	infra_logger.Fatal(disableExit, logger, msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
+}
+
+func Fatalf(tctx *TraceContext, msg string, fields ...interface{}) {
+	sugar.Fatalf(msg, fields...)
 }
 
 func Sync() {

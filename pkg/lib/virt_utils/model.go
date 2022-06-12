@@ -1,8 +1,9 @@
 package virt_utils
 
+import "time"
+
 type Resource struct {
-	Kind string      `validate:"required"`
-	Spec interface{} `validate:"required"`
+	Kind string `validate:"required"`
 }
 
 type Vm struct {
@@ -19,9 +20,14 @@ type VmSpec struct {
 	Memory uint `validate:"required"`
 	Disk   uint `validate:"required"`
 
-	Image Image `validate:"required"`
-	Ports []Port
+	Image ImageSpec
+	Ports []NewworkPort
 }
 
 type Network struct {
+	Name      string `gorm:"primaryKey"`
+	DeletedAt *time.Time
+}
+
+type NewworkPort struct {
 }
