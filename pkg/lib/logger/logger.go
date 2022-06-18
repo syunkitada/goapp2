@@ -112,16 +112,32 @@ func Debug(tctx *TraceContext, msg string, fields ...zap.Field) {
 	logger.Debug(msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
 }
 
+func Debugf(tctx *TraceContext, msg string, fields ...interface{}) {
+	sugar.Debugf(msg, fields...)
+}
+
 func Info(tctx *TraceContext, msg string, fields ...zap.Field) {
 	logger.Info(msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
+}
+
+func Infof(tctx *TraceContext, msg string, fields ...interface{}) {
+	sugar.Infof(msg, fields...)
 }
 
 func Warn(tctx *TraceContext, msg string, fields ...zap.Field) {
 	logger.Warn(msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
 }
 
+func Warnf(tctx *TraceContext, msg string, fields ...interface{}) {
+	sugar.Warnf(msg, fields...)
+}
+
 func Error(tctx *TraceContext, msg string, fields ...zap.Field) {
 	logger.Error(msg, append([]zap.Field{zap.Inline(tctx)}, fields...)...)
+}
+
+func Errorf(tctx *TraceContext, msg string, fields ...interface{}) {
+	sugar.Errorf(msg, fields...)
 }
 
 func Fatal(tctx *TraceContext, msg string, fields ...zap.Field) {

@@ -1,0 +1,13 @@
+kind: compute
+spec:
+  name: vm1
+  kind: qemu
+  vcpus: 4
+  memoryMb: 4096
+  diskGb: 10
+  image:
+    name: centos8
+  networks:
+    - name: local1
+  service:
+    restart: always

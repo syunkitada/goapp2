@@ -10,6 +10,47 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func ReadFilesBytesFromMultiPath(filePaths []string) (result [][]byte, err error) {
+	var tmpResult [][]byte
+	for _, filePath := range filePaths {
+		if tmpResult, err = ReadFilesBytes(filePath); err != nil {
+			return
+		}
+		result = append(result, tmpResult...)
+	}
+	return
+}
+
+func ReadFilesBytes(filePath string) (result [][]byte, err error) {
+	fileStat, err := os.Stat(filePath)
+	if err != nil {
+		return
+	}
+
+	if fileStat.IsDir() {
+		var files []os.FileInfo
+		if files, err = ioutil.ReadDir(filePath); err != nil {
+			return
+		}
+		for _, file := range files {
+			path := filepath.Join(filePath, file.Name())
+			var tmpResult [][]byte
+			if tmpResult, err = ReadFilesBytes(path); err != nil {
+				return
+			}
+			result = append(result, tmpResult...)
+		}
+		return
+	}
+
+	var tmpResult []byte
+	if tmpResult, err = ioutil.ReadFile(filePath); err != nil {
+		return
+	}
+	splitedResult := bytes.Split(tmpResult, []byte("\n---"))
+	return splitedResult, nil
+}
+
 func ReadFilesFromMultiPath(filePaths []string) ([]interface{}, error) {
 	var err error
 	var result []interface{}

@@ -16,28 +16,81 @@ var virtCmd = &cobra.Command{
 	Short: "control virt",
 }
 
-var startCmd = &cobra.Command{
+var bootstrapCmd = &cobra.Command{
+	Use:   "bootstrap",
+	Short: "bootstrap",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.Init(&logger.Config{})
+		virtController := virt_utils.NewVirtContoller()
+		virtController.MustInit()
+		virtController.MustBootstrap()
+	},
+}
+
+var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "create",
 	Run: func(cmd *cobra.Command, args []string) {
-		var resources []interface{}
-		resources, err := file_utils.ReadFilesFromMultiPath(files)
-		if err != nil {
+		var err error
+		var resources [][]byte
+		if resources, err = file_utils.ReadFilesBytesFromMultiPath(files); err != nil {
 			fmt.Println("Failed", err.Error())
 			return
 		}
 
 		logger.Init(&logger.Config{})
 		virtController := virt_utils.NewVirtContoller()
-		virtController.Init()
-		fmt.Println("DEBUG virt", len(resources))
+		virtController.MustInit()
+		tctx := logger.NewTraceContext()
+		if err = virtController.Create(tctx, resources); err != nil {
+			fmt.Println("Failed", err.Error())
+			return
+		}
 	},
 }
 
-func init() {
-	startCmd.PersistentFlags().StringSliceVarP(&files, "files", "f", []string{}, "source file")
-	startCmd.MarkPersistentFlagRequired("files")
+var getCmd = &cobra.Command{
+	Use:   "get",
+	Short: "get",
+}
 
-	virtCmd.AddCommand(startCmd)
+func getResource(kind string, args []string) {
+	var err error
+	logger.Init(&logger.Config{})
+	virtController := virt_utils.NewVirtContoller()
+	virtController.MustInit()
+	tctx := logger.NewTraceContext()
+	var result *virt_utils.GetResult
+	if result, err = virtController.Get(tctx, kind, args); err != nil {
+		fmt.Println("Failed", err.Error())
+		return
+	}
+
+	fmt.Println("getResource", result, err)
+}
+
+func init() {
+	createCmd.PersistentFlags().StringSliceVarP(&files, "files", "f", []string{}, "source file")
+	createCmd.MarkPersistentFlagRequired("files")
+
+	resources := []string{
+		"image",
+	}
+
+	for _, resource := range resources {
+		var getResourceCmd = &cobra.Command{
+			Use:   resource + " [name]...",
+			Short: "get " + resource + " information",
+			Run: func(cmd *cobra.Command, args []string) {
+				getResource(resource, args)
+			},
+		}
+		getCmd.AddCommand(getResourceCmd)
+	}
+
+	virtCmd.AddCommand(getCmd)
+	virtCmd.AddCommand(bootstrapCmd)
+	virtCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(virtCmd)
+
 }

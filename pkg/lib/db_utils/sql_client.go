@@ -1,6 +1,8 @@
 package db_utils
 
 import (
+	"fmt"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
@@ -52,4 +54,37 @@ func (self *SqlClient) MustClose(tctx *logger.TraceContext) {
 	if tmpErr := self.DB.Close(); tmpErr != nil {
 		logger.Fatalf(tctx, "Failed Close: err=%s", tmpErr.Error())
 	}
+}
+
+func (self *SqlClient) Transact(tctx *logger.TraceContext, txFunc func(tx *gorm.DB) (err error)) (err error) {
+	tx := self.DB.Begin()
+	if err = tx.Error; err != nil {
+		return
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			if tmpErr := tx.Rollback().Error; tmpErr != nil {
+				logger.Errorf(tctx, "failed rollback on recover: err=%s", tmpErr.Error())
+			} else {
+				logger.Infof(tctx, "transaction was rollbacked because of recover")
+				err = fmt.Errorf("transaction was rollbacked because of recover")
+			}
+		} else if err != nil {
+			if tmpErr := tx.Rollback().Error; tmpErr != nil {
+				logger.Errorf(tctx, "failed rollback after err: err=%s", tmpErr.Error())
+			} else {
+				logger.Infof(tctx, "transaction was rollbacked because of err:: err=%s", err.Error())
+			}
+		} else {
+			if err = tx.Commit().Error; err != nil {
+				if tmpErr := tx.Rollback().Error; tmpErr != nil {
+					logger.Errorf(tctx, "failed rollback on commit: err=%s", tmpErr.Error())
+				} else {
+					logger.Infof(tctx, "transaction was rollbacked because of commit err:: err=%s", err.Error())
+				}
+			}
+		}
+	}()
+	err = txFunc(tx)
+	return
 }
