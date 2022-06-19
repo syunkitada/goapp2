@@ -1,4 +1,4 @@
-kind: compute
+kind: vm
 spec:
   name: vm1
   kind: qemu
@@ -9,5 +9,6 @@ spec:
     name: centos8
   networks:
     - name: local1
-  service:
-    restart: always
+  spec:
+    service:
+      restart: always

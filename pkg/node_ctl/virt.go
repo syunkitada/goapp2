@@ -10,6 +10,7 @@ import (
 )
 
 var files []string
+var outputFormat string
 
 var virtCmd = &cobra.Command{
 	Use:   "virt",
@@ -66,7 +67,7 @@ func getResource(kind string, args []string) {
 		return
 	}
 
-	fmt.Println("getResource", result, err)
+	result.Output(outputFormat)
 }
 
 func init() {
@@ -74,10 +75,13 @@ func init() {
 	createCmd.MarkPersistentFlagRequired("files")
 
 	resources := []string{
+		"all",
+		"vm",
 		"image",
+		"network",
 	}
-
-	for _, resource := range resources {
+	for i := range resources {
+		resource := resources[i]
 		var getResourceCmd = &cobra.Command{
 			Use:   resource + " [name]...",
 			Short: "get " + resource + " information",
@@ -88,6 +92,7 @@ func init() {
 		getCmd.AddCommand(getResourceCmd)
 	}
 
+	virtCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format")
 	virtCmd.AddCommand(getCmd)
 	virtCmd.AddCommand(bootstrapCmd)
 	virtCmd.AddCommand(createCmd)

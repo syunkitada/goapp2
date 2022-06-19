@@ -2,12 +2,15 @@ package virt_utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 
 	"github.com/syunkitada/goapp2/pkg/lib/db_utils"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
+	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
 )
 
 type VirtController struct {
@@ -49,6 +52,7 @@ func (self *VirtController) MustBootstrap() {
 }
 
 const (
+	KindAll     = "all"
 	KindVm      = "vm"
 	KindImage   = "image"
 	KindNetwork = "network"
@@ -61,6 +65,9 @@ type Resource struct {
 }
 
 func (self *VirtController) Create(tctx *logger.TraceContext, resourcesBytes [][]byte) (err error) {
+	var vms []VmSpec
+	var networks []NetworkSpec
+	var images []ImageSpec
 	for _, resourceBytes := range resourcesBytes {
 		var resource Resource
 		if err = yaml.Unmarshal(resourceBytes, &resource); err != nil {
@@ -72,48 +79,105 @@ func (self *VirtController) Create(tctx *logger.TraceContext, resourcesBytes [][
 		}
 		switch resource.Kind {
 		case KindVm:
-			var network VmSpec
-			if err = json.Unmarshal(bytes, &network); err != nil {
+			var spec VmSpec
+			if err = json.Unmarshal(bytes, &spec); err != nil {
 				return
 			}
-			if err = self.CreateOrUpdateVm(tctx, &network); err != nil {
-				return
-			}
+			vms = append(vms, spec)
 		case KindNetwork:
-			var network NetworkSpec
-			if err = json.Unmarshal(bytes, &network); err != nil {
+			var spec NetworkSpec
+			if err = json.Unmarshal(bytes, &spec); err != nil {
 				return
 			}
-			if err = self.CreateOrUpdateNetwork(tctx, &network); err != nil {
-				return
-			}
+			networks = append(networks, spec)
 		case KindImage:
 			var spec ImageSpec
 			if err = json.Unmarshal(bytes, &spec); err != nil {
 				return
 			}
-			if err = self.CreateOrUpdateImage(tctx, &spec); err != nil {
-				return
-			}
+			images = append(images, spec)
+		}
+	}
+
+	for i := range networks {
+		if err = self.CreateOrUpdateNetwork(tctx, &networks[i]); err != nil {
+			return
+		}
+	}
+
+	for i := range images {
+		if err = self.CreateOrUpdateImage(tctx, &images[i]); err != nil {
+			return
+		}
+	}
+
+	for i := range vms {
+		if err = self.CreateOrUpdateVm(tctx, &vms[i]); err != nil {
+			return
 		}
 	}
 	return
+
 }
 
 type GetResult struct {
-	Vms      []VmResource
-	Networks []NetworkResource
-	Images   []ImageResource
+	Vms      VmResources
+	Networks NetworkResources
+	Images   ImageResources
+}
+
+func (self *GetResult) Output(format string) {
+	switch format {
+	case "yaml", "json":
+		outputs := []string{}
+		for _, data := range self.Vms {
+			outputs = str_utils.AppendOutputByFormat(outputs, data, format)
+		}
+		for _, data := range self.Images {
+			outputs = str_utils.AppendOutputByFormat(outputs, data, format)
+		}
+		for _, data := range self.Networks {
+			outputs = str_utils.AppendOutputByFormat(outputs, data, format)
+		}
+		fmt.Println(strings.Join(outputs, "\n---\n\n"))
+	default:
+		if len(self.Vms) > 0 {
+			str_utils.OutputByFormat(self.Vms, format)
+		}
+		if len(self.Images) > 0 {
+			str_utils.OutputByFormat(self.Images, format)
+		}
+		if len(self.Networks) > 0 {
+			str_utils.OutputByFormat(self.Networks, format)
+		}
+	}
+
 }
 
 func (self *VirtController) Get(tctx *logger.TraceContext, kind string, args []string) (result *GetResult, err error) {
-	var vms []VmResource
-	var networks []NetworkResource
-	var images []ImageResource
+	var vms VmResources
+	var networks NetworkResources
+	var images ImageResources
 
 	switch kind {
+	case KindAll:
+		if vms, err = self.GetVmResources(tctx, args); err != nil {
+			return
+		}
+		if networks, err = self.GetNetworkResources(tctx, args); err != nil {
+			return
+		}
+		if images, err = self.GetImageResources(tctx, args); err != nil {
+			return
+		}
 	case KindVm:
+		if vms, err = self.GetVmResources(tctx, args); err != nil {
+			return
+		}
 	case KindNetwork:
+		if networks, err = self.GetNetworkResources(tctx, args); err != nil {
+			return
+		}
 	case KindImage:
 		if images, err = self.GetImageResources(tctx, args); err != nil {
 			return

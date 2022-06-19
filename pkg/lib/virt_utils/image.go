@@ -7,11 +7,29 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/syunkitada/goapp2/pkg/lib/errors"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
+	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
 )
+
+type ImageResources []ImageResource
+
+func (self ImageResources) String() string {
+	tableString, table := str_utils.GetTable()
+	table.SetHeader([]string{"Kind", "Name"})
+	for _, r := range self {
+		s := r.Spec
+		table.Append([]string{r.Kind, s.Name})
+	}
+	table.Render()
+	return tableString.String()
+}
 
 type ImageResource struct {
 	Kind string
 	Spec Image
+}
+
+type ImageDetectSpec struct {
+	Name string
 }
 
 type ImageSpec struct {
@@ -24,16 +42,12 @@ type Image struct {
 	ImageSpec
 	Id        uint       `gorm:"not null;primaryKey;autoIncrement;"`
 	DeletedAt *time.Time `gorm:"uniqueIndex:udx_name;"`
+	SpecStr   string     `gorm:"not null;column:spec" json:"-"`
 }
 
 type ImageUrlSpec struct {
 	Url        string `gorm:"not null;" validate:"required"`
 	PullPolicy string `gorm:"not null;" validate:"required,oneof=IfNotPresent"`
-}
-
-type ImageUrl struct {
-	ImageUrlSpec
-	ImageId uint `gorm:"not null;primaryKey;"`
 }
 
 const (
@@ -44,9 +58,6 @@ func (self *VirtController) BootstrapImage(tctx *logger.TraceContext) (err error
 	if err = self.sqlClient.DB.AutoMigrate(&Image{}).Error; err != nil {
 		return
 	}
-	if err = self.sqlClient.DB.AutoMigrate(&ImageUrl{}).Error; err != nil {
-		return
-	}
 	return
 }
 
@@ -55,15 +66,15 @@ func (self *VirtController) CreateOrUpdateImage(tctx *logger.TraceContext, spec 
 		return
 	}
 
-	var bytes []byte
-	if bytes, err = json.Marshal(spec.Spec); err != nil {
+	var specBytes []byte
+	if specBytes, err = json.Marshal(spec.Spec); err != nil {
 		return
 	}
 
 	var imageUrlSpec ImageUrlSpec
 	switch spec.Kind {
 	case KindImageUrl:
-		if err = json.Unmarshal(bytes, &imageUrlSpec); err != nil {
+		if err = json.Unmarshal(specBytes, &imageUrlSpec); err != nil {
 			return
 		}
 		if err = self.validate.Struct(imageUrlSpec); err != nil {
@@ -80,29 +91,19 @@ func (self *VirtController) CreateOrUpdateImage(tctx *logger.TraceContext, spec 
 			err = self.sqlClient.Transact(tctx, func(tx *gorm.DB) (err error) {
 				image := Image{
 					ImageSpec: *spec,
+					SpecStr:   string(specBytes),
 				}
-				if err = self.sqlClient.DB.Create(&image).Error; err != nil {
+				if err = tx.Create(&image).Error; err != nil {
 					return
-				}
-				switch spec.Kind {
-				case KindImageUrl:
-					imageUrl := ImageUrl{
-						ImageUrlSpec: imageUrlSpec,
-						ImageId:      image.Id,
-					}
-					if err = self.sqlClient.DB.Create(&imageUrl).Error; err != nil {
-						return
-					}
 				}
 				return
 			})
 		}
 		return
 	} else {
-		switch spec.Kind {
-		case KindImageUrl:
-			if err = self.sqlClient.DB.Table("image_urls").Where("image_id = ?", image.Id).Updates(map[string]interface{}{
-				"url": imageUrlSpec.Url,
+		if string(specBytes) != image.Spec {
+			if err = self.sqlClient.DB.Table("images").Where("id = ?", image.Id).Updates(map[string]interface{}{
+				"spec": string(specBytes),
 			}).Error; err != nil {
 				return
 			}
@@ -128,29 +129,17 @@ func (self *VirtController) GetImage(name string) (image *Image, err error) {
 	return
 }
 
-func (self *VirtController) GetImageResources(tctx *logger.TraceContext, names []string) (imageResources []ImageResource, err error) {
+func (self *VirtController) GetImageResources(tctx *logger.TraceContext, names []string) (imageResources ImageResources, err error) {
 	var images []Image
 	sql := self.sqlClient.DB.Table("images").Select("*").Where("deleted_at IS NULL")
+	if len(names) > 0 {
+		sql = sql.Where("name in (?)", names)
+	}
 	if err = sql.Scan(&images).Error; err != nil {
 		return
 	}
 
-	var imageUrls []ImageUrl
-	sql = self.sqlClient.DB.Table("image_urls").Select("*")
-	if err = sql.Scan(&imageUrls).Error; err != nil {
-		return
-	}
-
-	imageUrlMap := map[uint]ImageUrl{}
-	for _, imageUrl := range imageUrls {
-		imageUrlMap[imageUrl.ImageId] = imageUrl
-	}
-
 	for _, image := range images {
-		switch image.Kind {
-		case KindImageUrl:
-			image.Spec = imageUrlMap[image.Id]
-		}
 		imageResources = append(imageResources, ImageResource{
 			Kind: KindImage,
 			Spec: image,

@@ -6,8 +6,9 @@ spec:
   startIp: 192.168.100.2
   endIp: 192.168.100.254
   gateway: 192.168.100.1
-  resolvers:
-    - resolver: 192.168.10.1
-  nat:
-    enable: true
-    ports: 30000-40000
+  spec:
+    resolvers:
+      - resolver: 192.168.10.1
+    nat:
+      enable: true
+      ports: 30000-40000
