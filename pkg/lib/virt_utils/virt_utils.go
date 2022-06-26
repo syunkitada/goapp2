@@ -3,6 +3,8 @@ package virt_utils
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -11,18 +13,45 @@ import (
 	"github.com/syunkitada/goapp2/pkg/lib/db_utils"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
 	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
+	"github.com/syunkitada/goapp2/pkg/lib/struct_utils"
 )
 
 type VirtController struct {
+	conf      VirtControllerConfig
 	sqlClient *db_utils.SqlClient
 	validate  *validator.Validate
+
+	imagesDir string
+	vmsDir    string
 }
 
-func NewVirtContoller() (virtController *VirtController) {
-	sqlClient := db_utils.NewSqlClient(&db_utils.Config{})
+var virtControllerConf = VirtControllerConfig{
+	VarDir: "",
+}
+
+func init() {
+	home := os.Getenv("HOME")
+	virtControllerConf.VarDir = filepath.Join(home, ".cache/goapp2/")
+}
+
+type VirtControllerConfig struct {
+	VarDir   string
+	Database db_utils.Config
+}
+
+func NewVirtContoller(conf *VirtControllerConfig) (virtController *VirtController) {
+	struct_utils.MergeStruct(virtControllerConf, conf)
+	imagesDir := filepath.Join(conf.VarDir, "images")
+	vmsDir := filepath.Join(conf.VarDir, "vms")
+
+	sqlClient := db_utils.NewSqlClient(&virtControllerConf.Database)
+
 	return &VirtController{
+		conf:      virtControllerConf,
 		sqlClient: sqlClient,
 		validate:  validator.New(),
+		imagesDir: imagesDir,
+		vmsDir:    vmsDir,
 	}
 }
 
@@ -188,6 +217,22 @@ func (self *VirtController) Get(tctx *logger.TraceContext, kind string, args []s
 		Vms:      vms,
 		Networks: networks,
 		Images:   images,
+	}
+	return
+}
+
+func (self *VirtController) Start(tctx *logger.TraceContext, kind string, args []string) (result *GetResult, err error) {
+	var vms VmResources
+
+	switch kind {
+	case KindVm:
+		if vms, err = self.StartVmResources(tctx, args); err != nil {
+			return
+		}
+	}
+
+	result = &GetResult{
+		Vms: vms,
 	}
 	return
 }

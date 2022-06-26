@@ -2,7 +2,6 @@ package virt_utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -17,10 +16,10 @@ type VmResources []VmResource
 
 func (self VmResources) String() string {
 	tableString, table := str_utils.GetTable()
-	table.SetHeader([]string{"Kind", "Name", "Vcpus", "MemoryMb", "DiskGb"})
+	table.SetHeader([]string{"Kind", "Name", "Status", "Vcpus", "MemoryMb", "DiskGb"})
 	for _, r := range self {
 		s := r.Spec
-		table.Append([]string{r.Kind, s.Name, strconv.Itoa(int(s.Vcpus)), strconv.Itoa(int(s.MemoryMb)), strconv.Itoa(int(s.DiskGb))})
+		table.Append([]string{r.Kind, s.Name, s.Status, strconv.Itoa(int(s.Vcpus)), strconv.Itoa(int(s.MemoryMb)), strconv.Itoa(int(s.DiskGb))})
 	}
 	table.Render()
 	return tableString.String()
@@ -32,28 +31,30 @@ type VmResource struct {
 }
 
 type VmSpec struct {
-	Name         string              `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
-	Kind         string              `gorm:"not null;" validate:"required"`
-	Vcpus        uint                `gorm:"not null;" validate:"required"`
-	MemoryMb     uint                `gorm:"not null;" validate:"required"`
-	DiskGb       uint                `gorm:"not null;" validate:"required"`
-	Image        ImageDetectSpec     `gorm:"-"`
-	Networks     []NetworkDetectSpec `gorm:"-"`
-	NetworkPorts []NetworkPort       `gorm:"-"`
-	Spec         interface{}         `gorm:"-"`
+	Name     string              `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Kind     string              `gorm:"not null;" validate:"required"`
+	Vcpus    uint                `gorm:"not null;" validate:"required"`
+	MemoryMb uint                `gorm:"not null;" validate:"required"`
+	DiskGb   uint                `gorm:"not null;" validate:"required"`
+	Image    ImageDetectSpec     `gorm:"-"`
+	Networks []NetworkDetectSpec `gorm:"-"`
+	Spec     interface{}         `gorm:"-"`
 }
 
 type Vm struct {
 	VmSpec
-	Id        uint          `gorm:"not null;primaryKey;autoIncrement;"`
-	DeletedAt *time.Time    `gorm:"uniqueIndex:udx_name;"`
-	SpecStr   string        `gorm:"not null;column:spec" json:"-"`
-	Image     ImageSpec     `gorm:"-"`
-	Networks  []NetworkSpec `gorm:"-"`
+	Id        uint       `gorm:"not null;primaryKey;autoIncrement;"`
+	DeletedAt *time.Time `gorm:"uniqueIndex:udx_name;"`
+	ImageId   uint       `gorm:"not null;`
+	SpecStr   string     `gorm:"not null;column:spec" json:"-"`
+	Status    string     `gorm:"not null;"`
+	// Image     ImageSpec  `gorm:"-"`
+	// Network  []NetworkSpec `gorm:"-"`
 }
 
 type VmQemuSpec struct {
-	Service SystemdService `gorm:"-"`
+	Service      SystemdService `gorm:"-"`
+	NetworkPorts []NetworkPort  `gorm:"-"`
 }
 
 type SystemdService struct {
@@ -99,22 +100,24 @@ func (self *VirtController) CreateOrUpdateVm(tctx *logger.TraceContext, spec *Vm
 	if vm, err = self.GetVm(spec.Name); err != nil {
 		if errors.IsNotFoundError(err) {
 			err = self.sqlClient.Transact(tctx, func(tx *gorm.DB) (err error) {
-				fmt.Println("DEBUG create vm")
-				var ports []NetworkPort
-				if ports, err = self.AssignNetworkPort(tctx, tx, spec.Networks); err != nil {
+				var image *Image
+				if image, err = self.DetectImage(tctx, tx, &spec.Image); err != nil {
 					return
 				}
-				fmt.Println("DEBUG ports", ports)
 
-				vm := Vm{
+				vm := &Vm{
 					VmSpec:  *spec,
-					SpecStr: string(specBytes),
+					ImageId: image.Id,
+					Status:  StatusCreated,
 				}
-				if err = tx.Create(&vm).Error; err != nil {
+				if err = tx.Create(vm).Error; err != nil {
 					return
 				}
 
-				err = fmt.Errorf("DEBUG error")
+				if _, err = self.AssignNetworkPorts(tctx, tx, vm, spec.Networks); err != nil {
+					return
+				}
+
 				return
 			})
 		}
@@ -149,6 +152,26 @@ func (self *VirtController) GetVm(name string) (vm *Vm, err error) {
 }
 
 func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
+	var vms []Vm
+	sql := self.sqlClient.DB.Table("vms").Select("*").Where("deleted_at IS NULL")
+	if len(names) > 0 {
+		sql = sql.Where("name in (?)", names)
+	}
+	if err = sql.Scan(&vms).Error; err != nil {
+		return
+	}
+
+	for _, vm := range vms {
+		vmResources = append(vmResources, VmResource{
+			Kind: KindVm,
+			Spec: vm,
+		})
+	}
+
+	return
+}
+
+func (self *VirtController) StartVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
 	var vms []Vm
 	sql := self.sqlClient.DB.Table("vms").Select("*").Where("deleted_at IS NULL")
 	if len(names) > 0 {

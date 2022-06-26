@@ -148,3 +148,23 @@ func (self *VirtController) GetImageResources(tctx *logger.TraceContext, names [
 
 	return
 }
+
+func (self *VirtController) DetectImage(tctx *logger.TraceContext, tx *gorm.DB,
+	detectSpec *ImageDetectSpec) (image *Image, err error) {
+	var images []Image
+	sql := self.sqlClient.DB.Table("images").Select("*").Where("deleted_at IS NULL")
+	if detectSpec.Name != "" {
+		sql = sql.Where("name = ?", detectSpec.Name)
+	}
+	if err = sql.Scan(&images).Error; err != nil {
+		return
+	}
+
+	if len(images) == 0 {
+		err = errors.NewNotFoundErrorf("requested image is not found")
+		return
+	}
+
+	image = &images[0]
+	return
+}

@@ -17,13 +17,13 @@ var virtCmd = &cobra.Command{
 	Short: "control virt",
 }
 
+var virtController *virt_utils.VirtController
+
 var bootstrapCmd = &cobra.Command{
 	Use:   "bootstrap",
 	Short: "bootstrap",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Init(&logger.Config{})
-		virtController := virt_utils.NewVirtContoller()
-		virtController.MustInit()
 		virtController.MustBootstrap()
 	},
 }
@@ -40,8 +40,6 @@ var createCmd = &cobra.Command{
 		}
 
 		logger.Init(&logger.Config{})
-		virtController := virt_utils.NewVirtContoller()
-		virtController.MustInit()
 		tctx := logger.NewTraceContext()
 		if err = virtController.Create(tctx, resources); err != nil {
 			fmt.Println("Failed", err.Error())
@@ -58,11 +56,27 @@ var getCmd = &cobra.Command{
 func getResource(kind string, args []string) {
 	var err error
 	logger.Init(&logger.Config{})
-	virtController := virt_utils.NewVirtContoller()
-	virtController.MustInit()
 	tctx := logger.NewTraceContext()
 	var result *virt_utils.GetResult
 	if result, err = virtController.Get(tctx, kind, args); err != nil {
+		fmt.Println("Failed", err.Error())
+		return
+	}
+
+	result.Output(outputFormat)
+}
+
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "start",
+}
+
+func startResource(kind string, args []string) {
+	var err error
+	logger.Init(&logger.Config{})
+	tctx := logger.NewTraceContext()
+	var result *virt_utils.GetResult
+	if result, err = virtController.Start(tctx, kind, args); err != nil {
 		fmt.Println("Failed", err.Error())
 		return
 	}
@@ -92,10 +106,29 @@ func init() {
 		getCmd.AddCommand(getResourceCmd)
 	}
 
+	ctlResources := []string{
+		"vm",
+	}
+	for i := range ctlResources {
+		resource := ctlResources[i]
+		var startResourceCmd = &cobra.Command{
+			Use:   resource + " [name]...",
+			Short: "start " + resource + " information",
+			Run: func(cmd *cobra.Command, args []string) {
+				startResource(resource, args)
+			},
+		}
+		startCmd.AddCommand(startResourceCmd)
+	}
+
 	virtCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format")
 	virtCmd.AddCommand(getCmd)
+	virtCmd.AddCommand(startCmd)
 	virtCmd.AddCommand(bootstrapCmd)
 	virtCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(virtCmd)
 
+	conf := virt_utils.VirtControllerConfig{}
+	virtController = virt_utils.NewVirtContoller(&conf)
+	virtController.MustInit()
 }

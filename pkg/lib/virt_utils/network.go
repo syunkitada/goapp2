@@ -71,6 +71,7 @@ type NetworkNat struct {
 
 type NetworkPort struct {
 	NetworkId uint   `gorm:"not null;"`
+	VmId      uint   `gorm:"not null;"`
 	Ip        string `gorm:"not null;"`
 	Mac       string `gorm:"not null;"`
 }
@@ -133,7 +134,7 @@ func (self *VirtController) CreateOrUpdateNetwork(tctx *logger.TraceContext, spe
 		}
 		return
 	} else {
-		fmt.Println("debug update network", network)
+		fmt.Println("TODO update network", network)
 		return
 	}
 	return
@@ -176,8 +177,8 @@ func (self *VirtController) GetNetworkResources(tctx *logger.TraceContext, names
 	return
 }
 
-func (self *VirtController) AssignNetworkPort(tctx *logger.TraceContext, tx *gorm.DB,
-	detectSpecs []NetworkDetectSpec) (sports []NetworkPort, err error) {
+func (self *VirtController) AssignNetworkPorts(tctx *logger.TraceContext, tx *gorm.DB,
+	vm *Vm, detectSpecs []NetworkDetectSpec) (assignedPorts []NetworkPort, err error) {
 
 	var networks []Network
 	sql := self.sqlClient.DB.Table("networks").Select("*").Where("deleted_at IS NULL")
@@ -205,8 +206,6 @@ func (self *VirtController) AssignNetworkPort(tctx *logger.TraceContext, tx *gor
 			return
 		}
 	}
-
-	fmt.Println("DEBUG assign network port1")
 
 	for id := range candidateNetworkMap {
 		netIds = append(netIds, id)
@@ -239,10 +238,7 @@ func (self *VirtController) AssignNetworkPort(tctx *logger.TraceContext, tx *gor
 		candidateNetworkMap[id] = network
 	}
 
-	fmt.Println("DEBUG assign network port1", ports)
-
 	for _, spec := range detectSpecs {
-		fmt.Println("DEBUG spec", spec)
 		candidateNetworks := []Network{}
 		for _, id := range spec.CandidateNetworkIds {
 			network := candidateNetworkMap[id]
@@ -251,6 +247,7 @@ func (self *VirtController) AssignNetworkPort(tctx *logger.TraceContext, tx *gor
 
 		network := candidateNetworks[0]
 		portMap := netPortMap[network.Id]
+		macMap := netMacMap[network.Id]
 		candidateIp := net.ParseIP(network.StartIp)
 		for {
 			if _, ok := portMap[candidateIp.String()]; ok {
@@ -260,12 +257,29 @@ func (self *VirtController) AssignNetworkPort(tctx *logger.TraceContext, tx *gor
 			ipStr := candidateIp.String()
 			portMap[ipStr] = true
 			netPortMap[network.Id] = portMap
-			fmt.Println("TODO assign", ipStr)
+
+			var mac string
+			if mac, err = GenerateUniqueRandomMac(macMap, 100); err != nil {
+				return
+			}
+			macMap[mac] = true
+			netMacMap[network.Id] = macMap
+			assignedPort := NetworkPort{
+				VmId:      vm.Id,
+				NetworkId: network.Id,
+				Ip:        ipStr,
+				Mac:       mac,
+			}
+			assignedPorts = append(assignedPorts, assignedPort)
 			break
 		}
 	}
 
-	// fmt.Println("DEBUG assign network port1", availableIps)
+	for i := range assignedPorts {
+		if err = tx.Create(&assignedPorts[i]).Error; err != nil {
+			return
+		}
+	}
 
 	return
 }
