@@ -45,6 +45,13 @@ type Image struct {
 	SpecStr   string     `gorm:"not null;column:spec" json:"-"`
 }
 
+type VmImage struct {
+	ImageName    string `gorm:"-" json:"-"`
+	ImageKind    string `gorm:"-" json:"-"`
+	ImageSpecStr string `gorm:"-" json:"-"`
+	imageUrlSpec ImageUrlSpec
+}
+
 type ImageUrlSpec struct {
 	Url        string `gorm:"not null;" validate:"required"`
 	PullPolicy string `gorm:"not null;" validate:"required,oneof=IfNotPresent"`

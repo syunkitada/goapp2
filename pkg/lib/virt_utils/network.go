@@ -76,6 +76,16 @@ type NetworkPort struct {
 	Mac       string `gorm:"not null;"`
 }
 
+type VmNetwork struct {
+	Network
+	networkLocalSpec NetworkLocalSpec
+}
+
+type VmNetworkPort struct {
+	*VmNetwork
+	NetworkPort
+}
+
 const (
 	KindNetworkLocal = "local"
 )

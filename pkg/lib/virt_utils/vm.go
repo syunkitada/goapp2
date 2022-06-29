@@ -2,7 +2,9 @@ package virt_utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -16,10 +18,19 @@ type VmResources []VmResource
 
 func (self VmResources) String() string {
 	tableString, table := str_utils.GetTable()
-	table.SetHeader([]string{"Kind", "Name", "Status", "Vcpus", "MemoryMb", "DiskGb"})
+	table.SetHeader([]string{"Kind", "Name", "Status", "Vcpus", "MemoryMb", "DiskGb", "Image", "Ports"})
 	for _, r := range self {
 		s := r.Spec
-		table.Append([]string{r.Kind, s.Name, s.Status, strconv.Itoa(int(s.Vcpus)), strconv.Itoa(int(s.MemoryMb)), strconv.Itoa(int(s.DiskGb))})
+
+		portsStrs := []string{}
+		for _, port := range s.NetworkPorts {
+			portsStrs = append(portsStrs, port.Ip)
+		}
+
+		table.Append([]string{
+			r.Kind, s.Name, s.Status, strconv.Itoa(int(s.Vcpus)), strconv.Itoa(int(s.MemoryMb)), strconv.Itoa(int(s.DiskGb)),
+			s.ImageName, strings.Join(portsStrs, ","),
+		})
 	}
 	table.Render()
 	return tableString.String()
@@ -43,18 +54,17 @@ type VmSpec struct {
 
 type Vm struct {
 	VmSpec
-	Id        uint       `gorm:"not null;primaryKey;autoIncrement;"`
-	DeletedAt *time.Time `gorm:"uniqueIndex:udx_name;"`
-	ImageId   uint       `gorm:"not null;`
-	SpecStr   string     `gorm:"not null;column:spec" json:"-"`
-	Status    string     `gorm:"not null;"`
-	// Image     ImageSpec  `gorm:"-"`
-	// Network  []NetworkSpec `gorm:"-"`
+	VmImage
+	Id           uint            `gorm:"not null;primaryKey;autoIncrement;"`
+	DeletedAt    *time.Time      `gorm:"uniqueIndex:udx_name;"`
+	ImageId      uint            `gorm:"not null;`
+	SpecStr      string          `gorm:"not null;column:spec" json:"-"`
+	Status       string          `gorm:"not null;"`
+	NetworkPorts []VmNetworkPort `gorm:"-"`
 }
 
 type VmQemuSpec struct {
-	Service      SystemdService `gorm:"-"`
-	NetworkPorts []NetworkPort  `gorm:"-"`
+	Service SystemdService `gorm:"-"`
 }
 
 type SystemdService struct {
@@ -153,7 +163,9 @@ func (self *VirtController) GetVm(name string) (vm *Vm, err error) {
 
 func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
 	var vms []Vm
-	sql := self.sqlClient.DB.Table("vms").Select("*").Where("deleted_at IS NULL")
+	sql := self.sqlClient.DB.Table("vms AS v").Select("v.*, i.name as image_name, i.kind as image_kind, i.spec as image_spec_str").
+		Joins("INNER JOIN images AS i ON v.image_id == i.id").
+		Where("v.deleted_at IS NULL")
 	if len(names) > 0 {
 		sql = sql.Where("name in (?)", names)
 	}
@@ -161,10 +173,65 @@ func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []st
 		return
 	}
 
-	for _, vm := range vms {
+	var ports []VmNetworkPort
+	sql = self.sqlClient.DB.Table("network_ports").Select("*")
+	if err = sql.Scan(&ports).Error; err != nil {
+		return
+	}
+
+	var networks []Network
+	sql = self.sqlClient.DB.Table("networks").Select("*")
+	if err = sql.Scan(&networks).Error; err != nil {
+		return
+	}
+
+	vmMap := map[uint]*Vm{}
+	for i := range vms {
+		vm := vms[i]
+		var imageUrlSpec ImageUrlSpec
+		switch vm.ImageKind {
+		case KindImageUrl:
+			if err = json.Unmarshal([]byte(vm.ImageSpecStr), &imageUrlSpec); err != nil {
+				return
+			}
+		}
+		vm.imageUrlSpec = imageUrlSpec
+		vmMap[vm.Id] = &vm
+	}
+
+	networkMap := map[uint]*VmNetwork{}
+	for i := range networks {
+		network := networks[i]
+		var networkLocalSpec NetworkLocalSpec
+		switch network.Kind {
+		case KindNetworkLocal:
+			if err = json.Unmarshal([]byte(network.SpecStr), &networkLocalSpec); err != nil {
+				return
+			}
+		}
+		networkMap[network.Id] = &VmNetwork{
+			Network:          network,
+			networkLocalSpec: networkLocalSpec,
+		}
+	}
+
+	for i := range ports {
+		port := ports[i]
+		if vm, ok := vmMap[port.VmId]; ok {
+			network, ok := networkMap[port.NetworkId]
+			if !ok {
+				err = fmt.Errorf("port's network is not found")
+				return
+			}
+			port.VmNetwork = network
+			vm.NetworkPorts = append(vm.NetworkPorts, port)
+		}
+	}
+
+	for _, vm := range vmMap {
 		vmResources = append(vmResources, VmResource{
 			Kind: KindVm,
-			Spec: vm,
+			Spec: *vm,
 		})
 	}
 
@@ -172,21 +239,7 @@ func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []st
 }
 
 func (self *VirtController) StartVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
-	var vms []Vm
-	sql := self.sqlClient.DB.Table("vms").Select("*").Where("deleted_at IS NULL")
-	if len(names) > 0 {
-		sql = sql.Where("name in (?)", names)
-	}
-	if err = sql.Scan(&vms).Error; err != nil {
-		return
-	}
-
-	for _, vm := range vms {
-		vmResources = append(vmResources, VmResource{
-			Kind: KindVm,
-			Spec: vm,
-		})
-	}
+	vmResources, err = self.GetVmResources(tctx, names)
 
 	return
 }
