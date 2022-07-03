@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/syunkitada/goapp2/pkg/lib/errors"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
+	"github.com/syunkitada/goapp2/pkg/lib/os_cmds"
 	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
 )
 
@@ -291,5 +294,81 @@ func (self *VirtController) AssignNetworkPorts(tctx *logger.TraceContext, tx *go
 		}
 	}
 
+	return
+}
+
+func (self *VirtController) PrepareNetworks(tctx *logger.TraceContext, vmResources VmResources) (err error) {
+	// TODO prepare networkPorts and set vmResources
+
+	for _, vm := range vmResources {
+		for _, port := range vm.Spec.NetworkPorts {
+			switch port.Kind {
+			case KindNetworkLocal:
+				fmt.Println("DEBUG local")
+			}
+		}
+	}
+
+	assignedNetnsIds := make([]bool, 4096)
+	var netnsSet map[string]bool
+	if netnsSet, err = os_cmds.GetNetnsSet(tctx); err != nil {
+		return
+	}
+	for netns := range netnsSet {
+		splitedNetns := strings.Split(netns, "com-")
+		if len(splitedNetns) == 2 {
+			if id, tmpErr := strconv.Atoi(splitedNetns[1]); tmpErr != nil {
+				continue
+			} else if id < 4096 {
+				assignedNetnsIds[id] = true
+			}
+		}
+	}
+
+	vmNetnsGatewayStartIp := "169.254.1.1"
+	parsedVmNetGatewayStartIp := net.ParseIP(vmNetnsGatewayStartIp)
+	// vmNetnsGatewayEndIp := "169.254.1.100"
+	// vmNetnsServiceIp := "169.254.1.200"
+	vmNetnsStartIp := "169.254.32.1"
+	parsedVmNetnsStartIp := net.ParseIP(vmNetnsStartIp)
+	// vmNetnsEndIp := "169.254.63.254"
+
+	computeNetnsPortsMap := map[uint][]netnsPort{}
+	for _, vm := range vmResources {
+		fmt.Println(vm)
+
+		// ポートごとにveth, netns名を割り当てる(NodeServiceないでユニーク)
+		netnsPorts := []netnsPort{}
+		for j, port := range vm.Spec.NetworkPorts {
+			// インターフェイスの最大文字数が15なので、ベース文字数は12とする
+			var netnsId uint
+			for id, assigned := range assignedNetnsIds {
+				if !assigned {
+					netnsId = uint(id)
+					assignedNetnsIds[netnsId] = true
+					break
+				}
+			}
+			netnsName := fmt.Sprintf("com-%d", netnsId)
+			netnsGateway := AddIntToIp(parsedVmNetGatewayStartIp, uint(j))
+			netnsIp := AddIntToIp(parsedVmNetnsStartIp, netnsId)
+
+			netnsPort := netnsPort{
+				Id:           netnsId,
+				Name:         netnsName,
+				NetnsGateway: netnsGateway.String(),
+				NetnsIp:      netnsIp.String(),
+				VmIp:         port.Ip,
+				VmMac:        port.Mac,
+				VmSubnet:     port.Subnet,
+				Kind:         port.Kind,
+			}
+
+			netnsPorts = append(netnsPorts, netnsPort)
+			computeNetnsPortsMap[vm.Spec.Id] = netnsPorts
+		}
+	}
+
+	fmt.Println("DEBUG netnsPortsMap", computeNetnsPortsMap)
 	return
 }

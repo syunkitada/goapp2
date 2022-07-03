@@ -135,7 +135,7 @@ func GenerateUniqueRandomMac(macMap map[string]bool, limit int) (string, error) 
 	return "", fmt.Errorf("Failed Generate Mac: Exceeded Limit %d", limit)
 }
 
-func AddIntToIp(ip net.IP, value int) net.IP {
+func AddIntToIp(ip net.IP, value uint) net.IP {
 	intIp := ip2int(ip)
 	intIp += uint32(value)
 	newIp := int2ip(intIp)

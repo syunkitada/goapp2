@@ -175,3 +175,8 @@ func (self *VirtController) DetectImage(tctx *logger.TraceContext, tx *gorm.DB,
 	image = &images[0]
 	return
 }
+
+func (self *VirtController) PrepareImages(tctx *logger.TraceContext, vmResources VmResources) (err error) {
+	// TODO prepare image and set vmResources
+	return
+}

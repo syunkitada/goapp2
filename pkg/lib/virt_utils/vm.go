@@ -238,8 +238,30 @@ func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []st
 	return
 }
 
-func (self *VirtController) StartVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
-	vmResources, err = self.GetVmResources(tctx, names)
+type netnsPort struct {
+	Id           uint
+	Name         string
+	NetnsGateway string
+	NetnsIp      string
+	VmIp         string
+	VmMac        string
+	VmSubnet     string
+	Kind         string
+}
 
+func (self *VirtController) StartVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
+	if vmResources, err = self.GetVmResources(tctx, names); err != nil {
+		return
+	}
+
+	if err = self.PrepareImages(tctx, vmResources); err != nil {
+		return
+	}
+
+	if err = self.PrepareNetworks(tctx, vmResources); err != nil {
+		return
+	}
+
+	// TODO start vm
 	return
 }
