@@ -49,13 +49,14 @@ type NetworkDetectSpec struct {
 }
 
 type NetworkSpec struct {
-	Name    string      `gorm:"not null;uniqueIndex:udx_name;"`
-	Kind    string      `gorm:"not null;"`
-	Subnet  string      `gorm:"not null;"`
-	StartIp string      `gorm:"not null;"`
-	EndIp   string      `gorm:"not null;"`
-	Gateway string      `gorm:"not null;"`
-	Spec    interface{} `gorm:"-"`
+	Name      string      `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Namespace string      `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Kind      string      `gorm:"not null;"`
+	Subnet    string      `gorm:"not null;"`
+	StartIp   string      `gorm:"not null;"`
+	EndIp     string      `gorm:"not null;"`
+	Gateway   string      `gorm:"not null;"`
+	Spec      interface{} `gorm:"-"`
 }
 
 type NetworkLocalSpec struct {

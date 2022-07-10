@@ -2,6 +2,9 @@ package virt_utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -33,9 +36,10 @@ type ImageDetectSpec struct {
 }
 
 type ImageSpec struct {
-	Name string      `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
-	Kind string      `gorm:"not null;" validate:"required,oneof=url"`
-	Spec interface{} `gorm:"-"`
+	Name      string      `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Namespace string      `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Kind      string      `gorm:"not null;" validate:"required,oneof=url"`
+	Spec      interface{} `gorm:"-"`
 }
 
 type Image struct {
@@ -46,10 +50,12 @@ type Image struct {
 }
 
 type VmImage struct {
-	ImageName    string `gorm:"-" json:"-"`
-	ImageKind    string `gorm:"-" json:"-"`
-	ImageSpecStr string `gorm:"-" json:"-"`
-	imageUrlSpec ImageUrlSpec
+	ImageId        uint   `gorm:"-" json:"-"`
+	ImageName      string `gorm:"-" json:"-"`
+	ImageNamespace string `gorm:"-" json:"-"`
+	ImageKind      string `gorm:"-" json:"-"`
+	ImageSpecStr   string `gorm:"-" json:"-"`
+	imageUrlSpec   ImageUrlSpec
 }
 
 type ImageUrlSpec struct {
@@ -177,6 +183,14 @@ func (self *VirtController) DetectImage(tctx *logger.TraceContext, tx *gorm.DB,
 }
 
 func (self *VirtController) PrepareImages(tctx *logger.TraceContext, vmResources VmResources) (err error) {
+	// namespaceImageMap := map[string]map[string]VmImage{}
+	fmt.Println("prepre images")
+	for _, vm := range vmResources {
+		imagePath := filepath.Join(self.imagesDir, vm.Spec.ImageName)
+		if _, err := os.Stat(imagePath); os.IsNotExist(err) {
+			fmt.Println("download", imagePath)
+		}
+	}
 	// TODO prepare image and set vmResources
 	return
 }

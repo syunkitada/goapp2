@@ -42,14 +42,15 @@ type VmResource struct {
 }
 
 type VmSpec struct {
-	Name     string              `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
-	Kind     string              `gorm:"not null;" validate:"required"`
-	Vcpus    uint                `gorm:"not null;" validate:"required"`
-	MemoryMb uint                `gorm:"not null;" validate:"required"`
-	DiskGb   uint                `gorm:"not null;" validate:"required"`
-	Image    ImageDetectSpec     `gorm:"-"`
-	Networks []NetworkDetectSpec `gorm:"-"`
-	Spec     interface{}         `gorm:"-"`
+	Name      string              `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Namespace string              `gorm:"not null;uniqueIndex:udx_name;" validate:"required"`
+	Kind      string              `gorm:"not null;" validate:"required"`
+	Vcpus     uint                `gorm:"not null;" validate:"required"`
+	MemoryMb  uint                `gorm:"not null;" validate:"required"`
+	DiskGb    uint                `gorm:"not null;" validate:"required"`
+	Image     ImageDetectSpec     `gorm:"-"`
+	Networks  []NetworkDetectSpec `gorm:"-"`
+	Spec      interface{}         `gorm:"-"`
 }
 
 type Vm struct {
@@ -163,7 +164,7 @@ func (self *VirtController) GetVm(name string) (vm *Vm, err error) {
 
 func (self *VirtController) GetVmResources(tctx *logger.TraceContext, names []string) (vmResources VmResources, err error) {
 	var vms []Vm
-	sql := self.sqlClient.DB.Table("vms AS v").Select("v.*, i.name as image_name, i.kind as image_kind, i.spec as image_spec_str").
+	sql := self.sqlClient.DB.Table("vms AS v").Select("v.*, i.id as image_id, i.namespace as image_namespace, i.name as image_name, i.kind as image_kind, i.spec as image_spec_str").
 		Joins("INNER JOIN images AS i ON v.image_id == i.id").
 		Where("v.deleted_at IS NULL")
 	if len(names) > 0 {

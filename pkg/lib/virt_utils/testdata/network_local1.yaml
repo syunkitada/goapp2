@@ -1,7 +1,8 @@
 kind: network
 spec:
   name: local1
-  kind: localNetns
+  namespace: group1
+  kind: local
   subnet: 192.168.100.0/24
   startIp: 192.168.100.2
   endIp: 192.168.100.254

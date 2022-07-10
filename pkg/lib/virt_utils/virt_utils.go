@@ -13,7 +13,6 @@ import (
 	"github.com/syunkitada/goapp2/pkg/lib/db_utils"
 	"github.com/syunkitada/goapp2/pkg/lib/logger"
 	"github.com/syunkitada/goapp2/pkg/lib/str_utils"
-	"github.com/syunkitada/goapp2/pkg/lib/struct_utils"
 )
 
 type VirtController struct {
@@ -40,9 +39,8 @@ type VirtControllerConfig struct {
 }
 
 func NewVirtContoller(conf *VirtControllerConfig) (virtController *VirtController) {
-	struct_utils.MergeStruct(virtControllerConf, conf)
-	imagesDir := filepath.Join(conf.VarDir, "images")
-	vmsDir := filepath.Join(conf.VarDir, "vms")
+	imagesDir := filepath.Join(virtControllerConf.VarDir, "images")
+	vmsDir := filepath.Join(virtControllerConf.VarDir, "vms")
 
 	sqlClient := db_utils.NewSqlClient(&virtControllerConf.Database)
 
