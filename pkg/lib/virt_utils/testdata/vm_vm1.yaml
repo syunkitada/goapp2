@@ -1,0 +1,15 @@
+kind: vm
+spec:
+  name: vm1
+  namespace: group1
+  kind: qemu
+  vcpus: 4
+  memoryMb: 4096
+  diskGb: 10
+  image:
+    name: centos8
+  networks:
+    - name: local1
+  spec:
+    service:
+      restart: always

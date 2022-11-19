@@ -1,0 +1,21 @@
+kind: network
+spec:
+  name: local1
+  namespace: group1
+  kind: local
+  subnet: 192.168.100.0/24
+  startIp: 192.168.100.2
+  endIp: 192.168.100.254
+  gateway: 192.168.100.1
+  spec:
+    resolvers:
+      - resolver: 192.168.10.1
+    nat:
+      enable: true
+      ports: 30000-40000
+    netns:
+      vmNetnsGatewayStartIp: "169.254.1.1"
+      vmNetnsGatewayEndIp: "169.254.1.100"
+      vmNetnsServiceIp: "169.254.1.200"
+      vmNetnsStartIp: "169.254.32.1"
+      vmNetnsEndIp: "169.254.63.254"

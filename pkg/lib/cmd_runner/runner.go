@@ -38,6 +38,9 @@ func New(conf *Config) *Runner {
 	cmds := strings.Fields(conf.Cmd)
 	cmd := cmds[0]
 	cmdOptions := cmds[1:]
+	if conf.Interval == 0 {
+		conf.Interval = 60
+	}
 	timeout := conf.Timeout
 	if timeout == 0 {
 		timeout = conf.Interval - 10
@@ -52,6 +55,12 @@ func New(conf *Config) *Runner {
 		killInterval: time.Duration(1) * time.Second,
 		stopCh:       make(chan chan bool),
 	}
+}
+
+func Run(conf *Config) (result *Result, err error) {
+	runner := New(conf)
+	result, err = runner.Run()
+	return
 }
 
 func (self *Runner) Start() {
@@ -94,7 +103,6 @@ func (self *Runner) start() {
 
 type Result struct {
 	Cmd    string
-	Err    error
 	Output string
 	Status int
 }
@@ -156,6 +164,7 @@ func (self *Runner) Run() (result *Result, err error) {
 		} else {
 			if tmpCmdResult != nil {
 				if tmpCmdResult.err != nil {
+					err = tmpCmdResult.err
 					result.Output = fmt.Sprintf("Failed command: err=%s", tmpCmdResult.err.Error())
 					result.Status = StatusErr
 				} else {
@@ -175,6 +184,10 @@ func (self *Runner) Run() (result *Result, err error) {
 					result.Status = StatusErr
 				}
 			}
+		}
+
+		if err == nil && result.Status != 0 {
+			err = fmt.Errorf("Failed command: status=%d, output=%s", result.Status, result.Output)
 		}
 		log.Printf("EndRun: %s", self.conf.Cmd)
 		return
@@ -241,8 +254,9 @@ func cmdWait(cmd *exec.Cmd, stdoutPipe io.ReadCloser, stderrPipe io.ReadCloser, 
 	if stderr, err = ioutil.ReadAll(stderrPipe); err != nil {
 		return
 	}
-	if err = cmd.Wait(); err != nil {
+	err = cmd.Wait()
+	exitCode = cmd.ProcessState.ExitCode()
+	if err != nil {
 		return
 	}
-	exitCode = cmd.ProcessState.ExitCode()
 }
